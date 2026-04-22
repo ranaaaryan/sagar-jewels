@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Sagar Jewellers — Jewellery App (Print)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Nunito+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: #E4D7C3; font-family: 'Nunito Sans', sans-serif; }
+  * { box-sizing: border-box; }
+  ::-webkit-scrollbar { width: 0; height: 0; }
+
+  .sheet {
+    width: 1100px;
+    min-height: 820px;
+    margin: 0 auto;
+    padding: 40px 40px 30px;
+    background: linear-gradient(180deg, #EAE0D2 0%, #E1D4C1 100%);
+    page-break-after: always;
+    break-after: page;
+    break-inside: avoid;
+    display: flex;
+    flex-direction: column;
+  }
+  .sheet:last-child { page-break-after: auto; break-after: auto; }
+
+  .sheet-header {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 18px; color: #2A2724;
+  }
+  .sheet-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 28px; font-weight: 500; margin: 0;
+  }
+  .sheet-sub {
+    font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+    color: #6E655C; font-weight: 700;
+  }
+
+  .phones {
+    display: flex; gap: 40px; justify-content: center; align-items: flex-start;
+    flex: 1;
+  }
+
+  .phone-mount { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .phone-caption {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 17px; color: #2A2724;
+  }
+
+  @page {
+    size: 1180px 880px;
+    margin: 0;
+  }
+  @media print {
+    html, body { background: white; }
+    .sheet { box-shadow: none; page-break-after: always; break-after: page; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  }
+</style>
+</head>
+<body>
+
+<div id="sheet-1" class="sheet">
+  <div class="sheet-header">
+    <h1 class="sheet-title">Sagar Jewellers · Jewellery App</h1>
+    <span class="sheet-sub">Profile · Orders</span>
+  </div>
+  <div class="phones">
+    <div class="phone-mount">
+      <div id="mount-profile"></div>
+      <div class="phone-caption">Profile</div>
+    </div>
+    <div class="phone-mount">
+      <div id="mount-orders"></div>
+      <div class="phone-caption">My Orders</div>
+    </div>
+  </div>
+</div>
+
+<div id="sheet-2" class="sheet">
+  <div class="sheet-header">
+    <h1 class="sheet-title">Sagar Jewellers · Jewellery App</h1>
+    <span class="sheet-sub">Wishlist · Addresses</span>
+  </div>
+  <div class="phones">
+    <div class="phone-mount">
+      <div id="mount-wishlist"></div>
+      <div class="phone-caption">Wishlist</div>
+    </div>
+    <div class="phone-mount">
+      <div id="mount-addresses"></div>
+      <div class="phone-caption">Saved Addresses</div>
+    </div>
+  </div>
+</div>
+
+<div id="sheet-3" class="sheet">
+  <div class="sheet-header">
+    <h1 class="sheet-title">Sagar Jewellers · Jewellery App</h1>
+    <span class="sheet-sub">10+1 Plan</span>
+  </div>
+  <div class="phones">
+    <div class="phone-mount">
+      <div id="mount-loyalty"></div>
+      <div class="phone-caption">10+1 Plan</div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<!-- Tokens (vanilla) -->
+<script src="app/tokens.js"></script>
+
+<!-- Components -->
+<script type="text/babel" src="app/icons.jsx"></script>
+<script type="text/babel" src="app/shell.jsx"></script>
+<script type="text/babel" src="app/atoms.jsx"></script>
+
+<!-- Pages -->
+<script type="text/babel" src="app/pages/Profile.jsx"></script>
+<script type="text/babel" src="app/pages/Orders.jsx"></script>
+<script type="text/babel" src="app/pages/Wishlist.jsx"></script>
+<script type="text/babel" src="app/pages/Addresses.jsx"></script>
+<script type="text/babel" src="app/pages/Loyalty.jsx"></script>
+
+<script type="text/babel">
+// Seed data (copied from main.jsx so we don't also mount the app)
+const SEED = {
+  user: { name: 'Sakshi Singh', email: 'sakshi.singh@google.com', phone: '+91 (555) 123-4567', memberSince: 2021, initials: 'SS' },
+  orders: [
+    { id: 'AUR-2814', date: '14 Apr 2026', status: 'shipped', eta: '22 Apr', total: 48900, items: [{ name: 'Lumière solitaire ring', cat: 'ring', tone: 'blush' }] },
+    { id: 'AUR-2771', date: '02 Apr 2026', status: 'delivered', total: 22400, items: [{ name: 'Opaline drop earrings', cat: 'earrings', tone: 'cream' },{ name: 'Monogram signet pendant', cat: 'necklace', tone: 'warm' }] },
+    { id: 'AUR-2540', date: '18 Feb 2026', status: 'delivered', total: 134500, items: [{ name: 'Bridal vine choker', cat: 'necklace', tone: 'blush' }] },
+    { id: 'AUR-2410', date: '09 Jan 2026', status: 'cancelled', total: 8900, items: [{ name: 'Pebble stacking band', cat: 'ring', tone: 'sage' }] },
+  ],
+  wishlist: [
+    { id: 'w1', name: 'Halo pear diamond ring', cat: 'rings', tone: 'blush', metal: '18k rose gold · 0.42ct', price: 96800, mrp: 102400, tag: 'new' },
+    { id: 'w2', name: 'Cascade tennis necklace',  cat: 'necklaces', tone: 'cream', metal: '18k white gold', price: 184000 },
+    { id: 'w3', name: 'Opaline huggies',           cat: 'earrings', tone: 'mist',  metal: '14k yellow gold', price: 24900, mrp: 27500, tag: 'back in stock' },
+    { id: 'w4', name: 'Pebble cuff',               cat: 'bracelets', tone: 'sage', metal: '18k yellow gold', price: 62400 },
+    { id: 'w5', name: 'Lumière solitaire',         cat: 'rings', tone: 'cream',   metal: '14k rose gold · 0.30ct', price: 48900 },
+    { id: 'w6', name: 'Monogram signet',           cat: 'necklaces', tone: 'warm',  metal: '14k yellow gold', price: 18400 },
+  ],
+  addresses: [
+    { id: 'a1', tag: 'home', isDefault: true, name: 'Sakshi Singh', line1: 'Flat 402, Aria Residences', line2: '18 Cavalry Road, Richards Town', city: 'Bengaluru, KA', pincode: '560005', phone: '+91 98452 33412' },
+    { id: 'a2', tag: 'work', isDefault: false, name: 'Sakshi Singh', line1: 'Level 11, Prestige Orion', line2: '27 MG Road', city: 'Bengaluru, KA', pincode: '560001', phone: '+91 98452 33412' },
+    { id: 'a3', tag: 'other', isDefault: false, name: 'Mrs. Rekha Singh', line1: 'Plot 27, Lane 4, Vasant Vihar', line2: 'Opp. Saket Park', city: 'New Delhi, DL', pincode: '110057', phone: '+91 98100 22341' },
+  ],
+  loyalty: {
+    tier: 'Sagar Gold', completed: 6, monthly: 8000, nextAt: '28 Apr 2026',
+    ledger: [
+      { label: 'March instalment', date: 'Paid 28 Mar 2026', amount: 8000, status: 'paid' },
+      { label: 'February instalment', date: 'Paid 28 Feb 2026', amount: 8000, status: 'paid' },
+      { label: 'January instalment', date: 'Paid 28 Jan 2026', amount: 8000, status: 'paid' },
+      { label: 'December instalment', date: 'Paid 28 Dec 2025', amount: 8000, status: 'paid' },
+    ],
+  },
+  cart: [],
+};
+
+function StaticPhoneHost({ Page }) {
+  const [state, setState] = React.useState(SEED);
+  const go = () => {}; // no nav in print
+  const T = window.JEWEL_TOKENS;
+  return (
+    <Phone>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        <Page go={go} state={state} setState={setState} />
+      </div>
+      <BottomNav current="profile" go={go} />
+      <div style={{ height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', background: T.bg }}>
+        <div style={{ width: 108, height: 4, borderRadius: 2, background: T.ink, opacity: 0.35 }}/>
+      </div>
+    </Phone>
+  );
+}
+
+function mount(id, Page) {
+  const el = document.getElementById(id);
+  if (el) ReactDOM.createRoot(el).render(<StaticPhoneHost Page={Page}/>);
+}
+
+mount('mount-profile',   window.ProfilePage);
+mount('mount-orders',    window.OrdersPage);
+mount('mount-wishlist',  window.WishlistPage);
+mount('mount-addresses', window.AddressesPage);
+mount('mount-loyalty',   window.LoyaltyPage);
+
+// Auto-print once fonts + layout settle
+(async () => {
+  try { await document.fonts.ready; } catch {}
+  setTimeout(() => window.print(), 800);
+})();
+</script>
+</body>
+</html>
