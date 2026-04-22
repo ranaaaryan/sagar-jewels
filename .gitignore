@@ -1,0 +1,8 @@
+# Build artifacts
+sagar-jewellers.zip
+project/node_modules/
+project/dist/
+project/.vite/
+
+# OS
+.DS_Store
