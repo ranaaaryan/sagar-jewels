@@ -2,7 +2,7 @@ import React from 'react';
 // Main app — state + router + mini pages used as stubs (Home / Categories / Cart / Coupons / Track)
 const TM = window.JEWEL_TOKENS;
 const { useState, useEffect } = React;
-
+// It starts Here
 // Seed data
 const SEED = {
   user: {
