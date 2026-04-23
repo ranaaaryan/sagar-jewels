@@ -125,12 +125,15 @@ function HomePage({ go, state }) {
 
         {/* ── Gold/Silver rate card ──────────── */}
         <div style={{ padding: '0 15px 18px' }}>
-          <div style={{
-            height: 119, borderRadius: 10, background: ACCENT,
-            boxShadow: '0 2px 20px rgba(175,130,109,0.5)',
-            display: 'flex', alignItems: 'center', position: 'relative', overflow: 'hidden',
-          }}>
-            <ArrowBtn dir="left"  onClick={() => setRateIdx(i => (i - 1 + rates.length) % rates.length)}/>
+          <div role="button" tabIndex={0} onClick={() => go('rate')}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go('rate'); } }}
+            style={{
+              height: 119, borderRadius: 10, background: ACCENT,
+              boxShadow: '0 2px 20px rgba(175,130,109,0.5)',
+              display: 'flex', alignItems: 'center', position: 'relative', overflow: 'hidden',
+              cursor: 'pointer',
+            }}>
+            <ArrowBtn dir="left"  onClick={e => { e.stopPropagation(); setRateIdx(i => (i - 1 + rates.length) % rates.length); }}/>
             <div style={{ flex: 1, textAlign: 'center', color: '#fff', padding: '0 8px' }}>
               <div style={{ fontFamily: `'Noto Serif', ${TH.serif}`, fontSize: 13, letterSpacing: 1, marginBottom: 6, opacity: 0.9 }}>{rates[rateIdx].k}</div>
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 14 }}>
@@ -148,7 +151,7 @@ function HomePage({ go, state }) {
                 ))}
               </div>
             </div>
-            <ArrowBtn dir="right" onClick={() => setRateIdx(i => (i + 1) % rates.length)}/>
+            <ArrowBtn dir="right" onClick={e => { e.stopPropagation(); setRateIdx(i => (i + 1) % rates.length); }}/>
           </div>
         </div>
 
@@ -249,6 +252,9 @@ function HomePage({ go, state }) {
           ))}
         </div>
 
+        {/* ── Customise Jewel informative banner ──── */}
+        <CustomiseJewelBanner go={go}/>
+
         {/* ── Our Special ─────────────────────── */}
         <SectionHeadH title="Our Special" centered/>
         <div style={{
@@ -260,6 +266,9 @@ function HomePage({ go, state }) {
             <SpecialCard key={i} item={s}/>
           ))}
         </div>
+
+        {/* ── Book My Gold informative banner ──────── */}
+        <BookMyGoldBanner go={go}/>
 
         {/* ── Shop by Color ───────────────────── */}
         <SectionHeadH title="Shop by Color"/>
@@ -277,7 +286,7 @@ function HomePage({ go, state }) {
         </div>
 
       </div>
-      <SideDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} go={go} user={user}/>
+      <SideDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} go={go} user={user} walletBalance={user.walletBalance}/>
     </>
   );
 }
@@ -371,6 +380,175 @@ function ArrowBtn({ dir, onClick }) {
         <polyline points="15 18 9 12 15 6"/>
       </svg>
     </button>
+  );
+}
+
+// ── Book My Gold informative banner ───────────────────
+function BookMyGoldBanner({ go }) {
+  return (
+    <div style={{ padding: '4px 15px 22px' }}>
+      <button onClick={() => go('book')} style={{
+        position: 'relative', width: '100%', display: 'block', textAlign: 'left',
+        background: 'linear-gradient(120deg, #2F1D11 0%, #5A3B23 48%, #8A5E3C 100%)',
+        borderRadius: 16, border: 'none', cursor: 'pointer',
+        padding: '22px 22px 20px', color: '#F3D69B',
+        boxShadow: '0 10px 28px rgba(58,36,24,0.28)',
+        overflow: 'hidden',
+      }}>
+        {/* Concentric ring ornament (top-right) */}
+        <svg width="180" height="180" viewBox="0 0 180 180"
+          style={{ position: 'absolute', top: -48, right: -46, opacity: 0.18, pointerEvents: 'none' }}>
+          <g stroke="#E9BE6F" strokeWidth="1" fill="none">
+            <circle cx="90" cy="90" r="36"/>
+            <circle cx="90" cy="90" r="54"/>
+            <circle cx="90" cy="90" r="72"/>
+            {[...Array(12)].map((_, i) => {
+              const a = (i * 30) * Math.PI / 180;
+              return (
+                <line key={i}
+                  x1={90 + Math.cos(a) * 36} y1={90 + Math.sin(a) * 36}
+                  x2={90 + Math.cos(a) * 72} y2={90 + Math.sin(a) * 72}/>
+              );
+            })}
+          </g>
+        </svg>
+
+        {/* Coin motif (bottom-left) */}
+        <svg width="80" height="64" viewBox="0 0 80 64" fill="none"
+          style={{ position: 'absolute', bottom: -8, left: -10, opacity: 0.28, pointerEvents: 'none' }}>
+          <ellipse cx="36" cy="52" rx="30" ry="6" fill="#B78336"/>
+          <ellipse cx="36" cy="40" rx="30" ry="6" fill="#D8A25A"/>
+          <ellipse cx="36" cy="28" rx="30" ry="6" fill="#E9BE6F"/>
+        </svg>
+
+        <div style={{ position: 'relative' }}>
+          <div style={{
+            fontFamily: `'Manrope', ${TH.sans}`, fontSize: 10.5, letterSpacing: 2.4,
+            color: '#E9BE6F', fontWeight: 700,
+          }}>◆ LIVE RATE · LOCK IT IN</div>
+
+          <div style={{
+            fontFamily: `'Noto Serif', ${TH.serif}`, fontSize: 26, fontWeight: 600,
+            color: '#F3D69B', lineHeight: 1.15, marginTop: 6,
+          }}>Book My Gold</div>
+
+          <div style={{
+            fontFamily: `'Manrope', ${TH.sans}`, fontSize: 12.5,
+            color: 'rgba(243,214,155,0.82)', lineHeight: 1.55, marginTop: 8, maxWidth: 320,
+          }}>
+            Lock today's rate, accumulate by ₹ or grams, and redeem as jewellery anytime.
+          </div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>
+            {['22K Purity', 'BIS Hallmark', 'No Hidden Fees'].map(t => (
+              <span key={t} style={{
+                padding: '5px 10px', borderRadius: 999,
+                background: 'rgba(233,190,111,0.12)', color: '#F3D69B',
+                border: '1px solid rgba(233,190,111,0.35)',
+                fontFamily: `'Manrope', ${TH.sans}`, fontSize: 10.5,
+                letterSpacing: 0.5, fontWeight: 600,
+              }}>{t}</span>
+            ))}
+          </div>
+
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            marginTop: 18, padding: '10px 18px',
+            background: '#F3D69B', color: '#2F1D11',
+            borderRadius: 999,
+            fontFamily: `'Manrope', ${TH.sans}`, fontSize: 11.5,
+            fontWeight: 800, letterSpacing: 1.6, textTransform: 'uppercase',
+          }}>
+            Book Now
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 12h14M13 5l7 7-7 7"/>
+            </svg>
+          </div>
+        </div>
+      </button>
+    </div>
+  );
+}
+
+function CustomiseJewelBanner({ go }) {
+  return (
+    <div style={{ padding: '18px 15px 4px' }}>
+      <button onClick={() => go('customise')} style={{
+        position: 'relative', width: '100%', display: 'block', textAlign: 'left',
+        background: 'linear-gradient(135deg, #FBF7F1 0%, #F1E6DA 55%, #E6D3BE 100%)',
+        borderRadius: 16, border: '1px solid rgba(122,88,67,0.18)', cursor: 'pointer',
+        padding: '22px 22px 22px', color: '#3A2A20',
+        boxShadow: '0 8px 22px rgba(122,88,67,0.14)',
+        overflow: 'hidden',
+      }}>
+        {/* Faceted diamond motif (top-right) */}
+        <svg width="150" height="150" viewBox="0 0 150 150"
+          style={{ position: 'absolute', top: -28, right: -30, opacity: 0.22, pointerEvents: 'none' }}>
+          <g stroke="rgb(122,88,67)" strokeWidth="1" fill="none">
+            <path d="M75 18 L120 62 L75 132 L30 62 Z"/>
+            <path d="M30 62 L120 62"/>
+            <path d="M75 18 L60 62 L75 132"/>
+            <path d="M75 18 L90 62 L75 132"/>
+            <path d="M45 40 L105 40"/>
+          </g>
+        </svg>
+
+        {/* Sparkle motif (bottom-left) */}
+        <svg width="88" height="88" viewBox="0 0 88 88"
+          style={{ position: 'absolute', bottom: -14, left: -12, opacity: 0.28, pointerEvents: 'none' }}>
+          <g stroke="rgb(172,129,108)" strokeWidth="1" fill="none" strokeLinecap="round">
+            <path d="M20 44 L44 44 M32 32 L32 56"/>
+            <path d="M62 26 L62 42 M54 34 L70 34"/>
+            <path d="M60 60 L60 74 M53 67 L67 67"/>
+          </g>
+        </svg>
+
+        <div style={{ position: 'relative' }}>
+          <div style={{
+            fontFamily: `'Manrope', ${TH.sans}`, fontSize: 10.5, letterSpacing: 2.4,
+            color: ACCENT_DK, fontWeight: 700,
+          }}>◆ BESPOKE · MADE FOR YOU</div>
+
+          <div style={{
+            fontFamily: `'Noto Serif', ${TH.serif}`, fontSize: 26, fontWeight: 600,
+            color: '#2F1D11', lineHeight: 1.15, marginTop: 6,
+          }}>Customise Jewel</div>
+
+          <div style={{
+            fontFamily: `'Manrope', ${TH.sans}`, fontSize: 12.5,
+            color: 'rgba(58,42,32,0.78)', lineHeight: 1.55, marginTop: 8, maxWidth: 320,
+          }}>
+            Design a one-of-a-kind piece — choose the metal, stones and silhouette. Our artisans bring your vision to life.
+          </div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>
+            {['Hand-Crafted', 'Your Design', 'BIS Hallmark'].map(t => (
+              <span key={t} style={{
+                padding: '5px 10px', borderRadius: 999,
+                background: 'rgba(122,88,67,0.08)', color: ACCENT_DK,
+                border: '1px solid rgba(122,88,67,0.28)',
+                fontFamily: `'Manrope', ${TH.sans}`, fontSize: 10.5,
+                letterSpacing: 0.5, fontWeight: 600,
+              }}>{t}</span>
+            ))}
+          </div>
+
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            marginTop: 18, padding: '10px 18px',
+            background: ACCENT_DK, color: '#FBF7F1',
+            borderRadius: 999,
+            fontFamily: `'Manrope', ${TH.sans}`, fontSize: 11.5,
+            fontWeight: 800, letterSpacing: 1.6, textTransform: 'uppercase',
+          }}>
+            Start Designing
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 12h14M13 5l7 7-7 7"/>
+            </svg>
+          </div>
+        </div>
+      </button>
+    </div>
   );
 }
 

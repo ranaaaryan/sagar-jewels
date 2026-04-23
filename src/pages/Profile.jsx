@@ -69,6 +69,7 @@ function SegBtn({ active, onClick, children }) {
 // ── Account Details tab ───────────────────────────────
 function DetailsPanel({ go, state, setState }) {
   const user = state.user;
+  const isKycVerified = user.kyc?.status === 'verified';
   return (
     <div style={{ padding: '0 18px' }}>
       <Card>
@@ -88,6 +89,27 @@ function DetailsPanel({ go, state, setState }) {
         <IconRow Icon={Icon.Tag}   label="Coupons"         onClick={() => go('coupons')} />
       </Card>
 
+      {isKycVerified && (
+        <div style={{ marginTop: 16 }}>
+          <Card>
+            <SectionTitle
+              action={
+                <span style={{
+                  fontFamily: TP.sans, fontSize: 10, color: '#4C6944', fontWeight: 700, letterSpacing: 0.6,
+                  padding: '3px 8px', borderRadius: 999,
+                  background: 'rgba(76,105,68,0.10)', border: '1px solid rgba(76,105,68,0.24)',
+                  whiteSpace: 'nowrap',
+                }}>VERIFIED · {user.kyc.verifiedOn}</span>
+              }>
+              KYC Details
+            </SectionTitle>
+            <DetailRow label="PAN NUMBER"     value={user.kyc.pan} />
+            <DetailRow label="AADHAAR NUMBER" value={maskAadhaar(user.kyc.aadhaar)} />
+            <DetailRow label="DATE OF BIRTH"  value={user.kyc.dob} last />
+          </Card>
+        </div>
+      )}
+
       <div style={{ textAlign: 'center', margin: '24px 0 10px' }}>
         <button style={{
           background: 'none', border: 'none', cursor: 'pointer',
@@ -98,6 +120,16 @@ function DetailsPanel({ go, state, setState }) {
     </div>
   );
 }
+
+// Mask the middle 8 digits of an Aadhaar number, keep the last group visible.
+function maskAadhaar(raw) {
+  if (!raw) return '';
+  const digits = String(raw).replace(/\s/g, '');
+  if (digits.length < 4) return raw;
+  const last = digits.slice(-4);
+  return `XXXX XXXX ${last}`;
+}
+
 
 // ── Recent Orders tab ─────────────────────────────────
 function OrdersPanel({ go, state }) {

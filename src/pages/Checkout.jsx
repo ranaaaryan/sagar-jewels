@@ -19,6 +19,9 @@ function CheckoutPage({ go, state, setState }) {
   const defaultAddr = (state.addresses.find(a => a.isDefault) || state.addresses[0]);
   const [addressId, setAddressId] = React.useState(defaultAddr?.id);
   const [payMethod, setPayMethod] = React.useState('card');
+  const [fulfillment, setFulfillment] = React.useState('delivery');
+  const [billingSame, setBillingSame] = React.useState(true);
+  const [whatsappUpdates, setWhatsappUpdates] = React.useState(true);
   const [placed, setPlaced] = React.useState(false);
   const [voucher, setVoucher] = React.useState('');
   const [coupon, setCoupon] = React.useState('');
@@ -27,7 +30,8 @@ function CheckoutPage({ go, state, setState }) {
   const subtotal = items.reduce((s, p) => s + p.price * (p.qty || 1), 0);
   const making   = items.reduce((s, p) => s + (p.making || 0) * (p.qty || 1), 0);
   const discount = state.cartCoupon?.value || 0;
-  const shipping = subtotal > 15000 ? 0 : 250;
+  const deliveryCharge = subtotal > 15000 ? 0 : 250;
+  const shipping = fulfillment === 'pickup' ? 0 : deliveryCharge;
   const tax      = Math.round((subtotal - discount) * 0.003 * 100) / 100;  // ~0.3% GST on jewellery
   const total    = subtotal + making + shipping + tax - discount;
 
@@ -63,6 +67,56 @@ function CheckoutPage({ go, state, setState }) {
           {state.addresses.map(a => (
             <AddressTile key={a.id} a={a} active={a.id === addressId} onClick={() => setAddressId(a.id)}/>
           ))}
+        </div>
+
+        {/* ─── Billing Address ─── */}
+        <SectionHead title="Billing Address"/>
+        <div style={{ padding: '0 15px', display: 'flex', flexDirection: 'column', gap: 15 }}>
+          <PayCard selected={billingSame} onClick={() => setBillingSame(true)}>
+            <div style={{
+              fontFamily: 'Manrope', fontWeight: 700, fontSize: 16, color: CX_INK,
+              letterSpacing: 0.2,
+            }}>Same as shipping address</div>
+          </PayCard>
+
+          <PayCard selected={!billingSame} onClick={() => setBillingSame(false)}>
+            <div>
+              <div style={{
+                fontFamily: 'Manrope', fontWeight: 700, fontSize: 16, color: CX_INK,
+                letterSpacing: 0.2,
+              }}>Use a different billing address</div>
+              {!billingSame && (
+                <button onClick={e => { e.stopPropagation(); go('addresses'); }} style={{
+                  background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                  fontFamily: 'Manrope', fontSize: 12, color: CX_ACCENT,
+                  letterSpacing: 0.4, fontWeight: 600, marginTop: 4,
+                }}>Change or add address →</button>
+              )}
+            </div>
+          </PayCard>
+        </div>
+
+        {/* WhatsApp updates opt-in */}
+        <div style={{ padding: '14px 15px 0', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button onClick={() => setWhatsappUpdates(w => !w)} aria-pressed={whatsappUpdates}
+            style={{
+              width: 22, height: 22, borderRadius: 6, border: 'none',
+              background: whatsappUpdates ? CX_ACCENT : '#fff',
+              boxShadow: whatsappUpdates ? 'none' : 'inset 0 0 0 1.5px rgba(176,178,177,0.5)',
+              cursor: 'pointer', flexShrink: 0, padding: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+            {whatsappUpdates && (
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff"
+                   strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12l5 5L20 7"/>
+              </svg>
+            )}
+          </button>
+          <span style={{
+            fontFamily: 'Manrope', fontSize: 13, color: CX_ACCENT_DK,
+            fontWeight: 600, letterSpacing: 0.2,
+          }}>Send me order related updates on WhatsApp</span>
         </div>
 
         {/* ─── Payment Method ─── */}
@@ -113,6 +167,47 @@ function CheckoutPage({ go, state, setState }) {
               }}>Wallets</span>
               <div style={{ flex: 1 }}/>
               <DualLogo/>
+            </div>
+          </PayCard>
+        </div>
+
+        {/* ─── Fulfillment (Home Delivery / Store Pickup) ─── */}
+        <SectionHead title="Fulfillment"/>
+        <div style={{ padding: '0 15px', display: 'flex', flexDirection: 'column', gap: 15 }}>
+          <PayCard selected={fulfillment === 'delivery'} onClick={() => setFulfillment('delivery')}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, width: '100%' }}>
+              <FulfillIcon type="delivery"/>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                  fontFamily: 'Manrope', fontWeight: 700, fontSize: 16, color: CX_INK,
+                }}>Home Delivery</div>
+                <div style={{
+                  fontFamily: 'Manrope', fontSize: 12, color: CX_INK_SOFT, marginTop: 2,
+                }}>Delivered to your address in 2–4 business days</div>
+              </div>
+              <div style={{
+                fontFamily: 'Manrope', fontWeight: 700, fontSize: 14, letterSpacing: 0.5,
+                color: deliveryCharge === 0 ? CX_ACCENT_DK : CX_INK,
+                whiteSpace: 'nowrap',
+              }}>{deliveryCharge === 0 ? 'FREE' : `₹${deliveryCharge}`}</div>
+            </div>
+          </PayCard>
+
+          <PayCard selected={fulfillment === 'pickup'} onClick={() => setFulfillment('pickup')}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, width: '100%' }}>
+              <FulfillIcon type="pickup"/>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                  fontFamily: 'Manrope', fontWeight: 700, fontSize: 16, color: CX_INK,
+                }}>Store Pickup</div>
+                <div style={{
+                  fontFamily: 'Manrope', fontSize: 12, color: CX_INK_SOFT, marginTop: 2,
+                }}>Collect from your nearest Sagar Jewellers store</div>
+              </div>
+              <div style={{
+                fontFamily: 'Manrope', fontWeight: 700, fontSize: 14, letterSpacing: 0.5,
+                color: CX_ACCENT_DK, whiteSpace: 'nowrap',
+              }}>FREE</div>
             </div>
           </PayCard>
         </div>
@@ -173,7 +268,7 @@ function CheckoutPage({ go, state, setState }) {
           {discount > 0 &&
             <SumRow label={state.cartCoupon?.code ? `Discount · ${state.cartCoupon.code}` : 'Discount'}
                     value={`₹${discount.toLocaleString('en-IN')}`}/>}
-          <SumRow label="Shipping"
+          <SumRow label={fulfillment === 'pickup' ? 'Store Pickup' : 'Home Delivery'}
                   value={shipping === 0 ? 'Complimentary' : `₹${shipping}`}
                   valueColor={shipping === 0 ? CX_ACCENT : CX_INK}/>
           <SumRow label="Estimated Tax" value={`₹${tax.toLocaleString('en-IN', {minimumFractionDigits: 2})}`}/>
@@ -251,6 +346,35 @@ function RadioRight({ on }) {
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={CX_ACCENT_DK}
              strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
           <path d="M5 12l5 5L20 7"/>
+        </svg>
+      )}
+    </div>
+  );
+}
+
+// Fulfillment option icon — truck for delivery, storefront for pickup
+function FulfillIcon({ type }) {
+  return (
+    <div style={{
+      width: 42, height: 42, borderRadius: 10, flexShrink: 0,
+      background: CX_CREAM,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      color: CX_ACCENT_DK,
+    }}>
+      {type === 'delivery' ? (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="1.5" y="7" width="12" height="10" rx="1"/>
+          <path d="M13.5 11h4.5l3 3v3h-7.5"/>
+          <circle cx="6" cy="19" r="2"/>
+          <circle cx="17" cy="19" r="2"/>
+        </svg>
+      ) : (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 10l1.6-5h14.8L21 10"/>
+          <path d="M4.5 10v10h15V10"/>
+          <path d="M9 20v-5h6v5"/>
         </svg>
       )}
     </div>

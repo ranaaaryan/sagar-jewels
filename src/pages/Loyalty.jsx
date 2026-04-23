@@ -138,9 +138,13 @@ function EnrollTab({ amount, setAmount, autopay, setAutopay, onStart }) {
           </svg>
 
           <div style={{
-            fontSize: 9, color: '#C08A3A', letterSpacing: 0.5, lineHeight: 1,
-            marginBottom: 10, overflow: 'hidden', whiteSpace: 'nowrap',
-          }}>+++++++++++++++++++++++++++</div>
+            display: 'inline-block',
+            fontSize: 9.5, color: '#220B2F', fontWeight: 800,
+            letterSpacing: 1.6, lineHeight: 1,
+            marginBottom: 10,
+            padding: '4px 8px', borderRadius: 4,
+            background: '#E9C88A',
+          }}>· 24KT GOLD ONLY ·</div>
 
           <div style={{ position: 'relative' }}>
             <div style={{ fontFamily: "'Noto Serif', serif", fontSize: 20, fontWeight: 500, color: '#C08A3A', lineHeight: 1.15 }}>
@@ -232,7 +236,7 @@ installment value)`}
 
         <div style={{ borderTop: `1px solid ${TL.lineSoft}`, marginTop: 14, paddingTop: 16 }}>
           <RowL
-            title="You can buy jewellery worth"
+            title="You can buy 24KT Gold jewellery worth"
             sub="(after 12th month)"
             value={`₹${fmtINR(canBuy)}`}
             emphasize
@@ -254,7 +258,8 @@ installment value)`}
         marginTop: 16, fontFamily: TL.sans, fontSize: 10.5,
         color: TL.inkSoft, lineHeight: 1.6, textAlign: 'center',
       }}>
-        T&C apply. Amount redeemable in-store or on the app after 12th month.
+        T&C apply. Applicable on 24KT Gold jewellery only.
+        Amount redeemable in-store or on the app after 12th month.
       </div>
     </>
   );
@@ -295,6 +300,10 @@ function PlanTab({ state, onEnroll, toggleAutopay, payNow }) {
           {registered ? '10+1 Plan active' : 'Not enrolled yet'}
         </div>
         <div style={{
+          fontFamily: TL.sans, fontSize: 11, color: '#C08A3A', marginTop: 4,
+          fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase',
+        }}>24KT Gold Only</div>
+        <div style={{
           fontFamily: TL.sans, fontSize: 12, color: '#E9C88A', marginTop: 6, lineHeight: 1.5,
         }}>
           {registered
@@ -323,7 +332,7 @@ function PlanTab({ state, onEnroll, toggleAutopay, payNow }) {
             marginBottom: 12,
           }}>
             <div style={{ fontFamily: TL.sans, fontSize: 15, fontWeight: 700, color: TL.ink }}>
-              Your 10+1 plan
+              Your 10+1 plan · 24KT Gold
             </div>
             <div style={{ fontFamily: TL.sans, fontSize: 12, fontWeight: 700, color: '#AF826D' }}>
               {pct}%

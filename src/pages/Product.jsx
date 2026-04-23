@@ -26,6 +26,36 @@ function ProductPage({ go, state, setState }) {
   const [saved, setSaved]         = React.useState(false);
   const [imgIdx, setImgIdx]       = React.useState(0);
 
+  const defaultAddr = (state?.addresses || []).find(a => a.isDefault) || (state?.addresses || [])[0];
+  const [pincode, setPincode]         = React.useState(defaultAddr?.pincode || '');
+  const [pincodeResult, setPinResult] = React.useState(null);
+
+  function checkPincode() {
+    const p = pincode.trim();
+    if (!/^\d{6}$/.test(p)) {
+      setPinResult({ error: 'Please enter a valid 6-digit pincode.' });
+      return;
+    }
+    // Mocked service check — certain ranges are unavailable for demo
+    const first = parseInt(p[0], 10);
+    if (first === 9) {
+      setPinResult({ error: `We currently don't deliver to ${p}. Try another pincode.` });
+      return;
+    }
+    const cities = {
+      1: 'New Delhi', 2: 'Jaipur', 3: 'Ahmedabad',
+      4: 'Mumbai', 5: 'Hyderabad', 6: 'Chennai',
+      7: 'Kolkata', 8: 'Guwahati',
+    };
+    const d = new Date();
+    d.setDate(d.getDate() + 3 + (parseInt(p[5], 10) % 3));
+    const date = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+    const cod = first !== 8; // demo: cash-on-delivery unavailable in far east
+    setPinResult({
+      available: true, city: cities[first] || 'your city', date, cod,
+    });
+  }
+
   const colors  = [
     { c: 'rgb(199,198,194)', n: 'White Gold' },
     { c: 'rgb(244,201,192)', n: 'Rose Gold' },
@@ -225,6 +255,88 @@ function ProductPage({ go, state, setState }) {
         </button>
       </div>
 
+      {/* ───────── Check Delivery (pincode availability) ───────── */}
+      <Section title="Check Delivery">
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          background: '#fff', borderRadius: 14,
+          padding: '6px 6px 6px 16px',
+          border: `1px solid ${PS_LINE}`,
+          boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
+        }}>
+          <svg width="18" height="22" viewBox="0 0 24 24" fill="none" stroke={PS_ACCENT_DK}
+               strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+            <path d="M12 22s-7-6-7-12a7 7 0 0114 0c0 6-7 12-7 12z"/>
+            <circle cx="12" cy="10" r="2.5"/>
+          </svg>
+          <input
+            type="text" inputMode="numeric"
+            value={pincode}
+            onChange={e => {
+              setPincode(e.target.value.replace(/\D/g, '').slice(0, 6));
+              if (pincodeResult) setPinResult(null);
+            }}
+            placeholder="Enter delivery pincode"
+            style={{
+              flex: 1, border: 'none', outline: 'none', background: 'transparent',
+              fontFamily: FS.sans, fontSize: 14, fontWeight: 600, color: PS_INK,
+              padding: '12px 0', minWidth: 0,
+              letterSpacing: 0.3,
+            }}
+          />
+          <button onClick={checkPincode} disabled={pincode.length < 6} style={{
+            height: 44, padding: '0 20px', borderRadius: 10, border: 'none',
+            background: pincode.length < 6 ? 'rgba(172,129,108,0.4)' : PS_ACCENT,
+            color: '#fff', cursor: pincode.length < 6 ? 'not-allowed' : 'pointer',
+            fontFamily: FS.sans, fontWeight: 700, fontSize: 12, letterSpacing: 1,
+            textTransform: 'uppercase', whiteSpace: 'nowrap',
+          }}>Check</button>
+        </div>
+
+        {pincodeResult && (
+          pincodeResult.error ? (
+            <div style={{
+              marginTop: 12, padding: '12px 14px', borderRadius: 10,
+              background: 'rgba(164,68,59,0.08)',
+              display: 'flex', alignItems: 'center', gap: 10,
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A4443B"
+                   strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 7v6M12 17h.01"/>
+              </svg>
+              <span style={{
+                fontFamily: FS.sans, fontSize: 12.5, color: '#A4443B', fontWeight: 600,
+              }}>{pincodeResult.error}</span>
+            </div>
+          ) : (
+            <div style={{
+              marginTop: 12, padding: 14, borderRadius: 10,
+              background: 'rgba(94,122,85,0.08)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4F6B44"
+                     strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M8 12l3 3 5-6"/>
+                </svg>
+                <div style={{
+                  fontFamily: FS.sans, fontSize: 13, fontWeight: 700,
+                  color: '#4F6B44',
+                }}>Delivery available in {pincodeResult.city}</div>
+              </div>
+              <div style={{
+                marginTop: 6, paddingLeft: 28,
+                fontFamily: FS.sans, fontSize: 12, color: PS_SOFT, lineHeight: 1.55,
+              }}>
+                Estimated arrival by <strong style={{ color: PS_INK }}>{pincodeResult.date}</strong>
+                {' · '}{pincodeResult.cod ? 'Cash-on-delivery available' : 'Prepaid only'}
+              </div>
+            </div>
+          )
+        )}
+      </Section>
+
       {/* ───────── Our Certifications ───────── */}
       <Section title="Our Certifications">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
@@ -317,22 +429,57 @@ function ProductPage({ go, state, setState }) {
         </SubSection>
       </Panel>
 
-      {/* ───────── Price Breakdown ───────── */}
-      <div style={{ padding: '28px 18px 0' }}>
-        <div style={{
-          fontFamily: FS.serif, fontSize: 20, fontWeight: 500, color: '#000',
-          letterSpacing: 0.5, marginBottom: 14,
-        }}>Price Breakdown</div>
-        <div>
-          <PriceRow k="Metal Cost"     v="₹40,400"/>
-          <PriceRow k="Stone Cost"     v="₹20,400"/>
-          <PriceRow k="Making Charge"  v="₹1,400"/>
-          <PriceRow k="Shipping"       v="Complimentary"/>
-          <PriceRow k="Estimated Tax"  v="₹4,411.20"/>
-          <div style={{ height: 1, background: 'rgb(239,232,227)', margin: '4px 0' }}/>
-          <PriceRow k="Total" v="₹1,20,000.20" bold/>
-        </div>
-      </div>
+      {/* ───────── Price Breakup ───────── */}
+      <Panel title="Price Breakup" defaultOpen>
+        <SubSection eyebrow="GOLD">
+          <BreakupTable
+            rows={[
+              { component: '9 KT Yellow Gold', rate: '₹ 5,783',  rateUnit: '/g',  weight: '2.950 g', discount: '-',    value: '₹ 17,060' },
+              { component: 'Making Charges',   rate: '₹ 3,350',  rateUnit: '/g',  weight: '2.950 g', discount: '100%', value: '₹ 0' },
+            ]}
+          />
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            marginTop: 12, padding: '10px 14px',
+            background: 'rgba(175,129,108,0.08)', borderRadius: 10,
+          }}>
+            <span style={{
+              fontFamily: FS.sans, fontSize: 11.5, fontWeight: 700,
+              color: PS_INK, letterSpacing: 0.4,
+            }}>Total Gold Value</span>
+            <span style={{
+              fontFamily: FS.sans, fontSize: 13, fontWeight: 800, color: PS_ACCENT_DK,
+            }}>₹ 17,060</span>
+          </div>
+        </SubSection>
+        <SubSection eyebrow="DIAMOND">
+          <BreakupTable
+            rows={[
+              { component: 'SI IJ round - 16 No.s', rate: '₹ 1,10,000', rateUnit: '/ct', weight: '0.064 ct', discount: '0%', value: '₹ 7,040' },
+              { component: 'SI IJ round - 32 No.s', rate: '₹ 1,10,000', rateUnit: '/ct', weight: '0.160 ct', discount: '0%', value: '₹ 17,600' },
+              { component: 'SI IJ round - 2 No.s',  rate: '₹ 1,10,000', rateUnit: '/ct', weight: '0.020 ct', discount: '0%', value: '₹ 2,200' },
+            ]}
+          />
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            marginTop: 12, padding: '10px 14px',
+            background: 'rgba(175,129,108,0.08)', borderRadius: 10,
+          }}>
+            <span style={{
+              fontFamily: FS.sans, fontSize: 11.5, fontWeight: 700,
+              color: PS_INK, letterSpacing: 0.4,
+            }}>Total Diamond Value</span>
+            <span style={{
+              fontFamily: FS.sans, fontSize: 13, fontWeight: 800, color: PS_ACCENT_DK,
+            }}>₹ 26,840</span>
+          </div>
+        </SubSection>
+
+        <div style={{ height: 1, background: PS_LINE, margin: '4px 0 6px' }}/>
+        <PriceRow k="Subtotal"     v="₹ 43,900"/>
+        <PriceRow k="GST"          v="₹ 1,317"/>
+        <PriceRow k="Grand Total"  v="₹ 45,217" bold/>
+      </Panel>
 
       {/* ───────── Curated Companions ───────── */}
       <div style={{ padding: '28px 18px 0' }}>
@@ -409,7 +556,7 @@ function ProductPage({ go, state, setState }) {
           <div style={{
             fontFamily: FS.serif, fontSize: 22, fontWeight: 700, color: PS_ACCENT_DK,
             lineHeight: 1.1, marginTop: 2,
-          }}>₹1,20,000.20</div>
+          }}>₹ 45,217</div>
         </div>
         <button onClick={addToCart} style={{
           height: 52, padding: '0 28px', borderRadius: 50, background: PS_ACCENT,
@@ -614,6 +761,64 @@ function SpecCard({ rows }) {
         }}>
           <span style={{ fontFamily: FS.sans, fontSize: 11.5, color: PS_SOFT, letterSpacing: 0.5, textTransform: 'uppercase', fontWeight: 600 }}>{k}</span>
           <span style={{ fontFamily: FS.sans, fontSize: 12.5, color: PS_INK, fontWeight: 600, textAlign: 'right', maxWidth: '60%' }}>{v}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function BreakupTable({ rows }) {
+  const grid = 'minmax(0, 1.55fr) minmax(0, 1.1fr) minmax(0, 0.95fr) minmax(0, 0.8fr) minmax(0, 1.05fr)';
+  const headers = ['Component', 'Rate', 'Weight', 'Discount', 'Value'];
+  return (
+    <div style={{
+      background: '#fff', borderRadius: 12,
+      border: `1px solid ${PS_LINE}`, overflow: 'hidden',
+    }}>
+      <div style={{
+        display: 'grid', gridTemplateColumns: grid, gap: 8,
+        padding: '10px 12px', background: 'rgba(175,129,108,0.06)',
+      }}>
+        {headers.map((h, i) => (
+          <div key={h} style={{
+            fontFamily: FS.sans, fontSize: 9.5, letterSpacing: 1,
+            color: PS_ACCENT_DK, fontWeight: 700, textTransform: 'uppercase',
+            textAlign: i === headers.length - 1 ? 'right' : 'left',
+            lineHeight: 1.2,
+          }}>{h}</div>
+        ))}
+      </div>
+      {rows.map((r, i) => (
+        <div key={i} style={{
+          display: 'grid', gridTemplateColumns: grid, gap: 8,
+          padding: '12px 12px', alignItems: 'center',
+          borderTop: `1px solid rgba(175,179,174,0.22)`,
+        }}>
+          <div style={{
+            fontFamily: FS.sans, fontSize: 11.5, color: PS_INK, fontWeight: 600,
+            lineHeight: 1.3, wordBreak: 'break-word',
+          }}>{r.component}</div>
+          <div style={{
+            fontFamily: FS.sans, fontSize: 11.5, color: PS_INK, fontWeight: 500,
+            lineHeight: 1.3, wordBreak: 'break-word',
+          }}>
+            {r.rate}
+            <span style={{ color: PS_SOFT }}> {r.rateUnit}</span>
+          </div>
+          <div style={{
+            fontFamily: FS.sans, fontSize: 11.5, color: PS_INK, fontWeight: 500,
+            lineHeight: 1.3,
+          }}>{r.weight}</div>
+          <div style={{
+            fontFamily: FS.sans, fontSize: 11.5,
+            color: r.discount && r.discount !== '-' && r.discount !== '0%' ? '#4F6B44' : PS_INK,
+            fontWeight: r.discount && r.discount !== '-' && r.discount !== '0%' ? 700 : 500,
+            lineHeight: 1.3,
+          }}>{r.discount}</div>
+          <div style={{
+            fontFamily: FS.sans, fontSize: 12, color: PS_INK, fontWeight: 700,
+            textAlign: 'right', lineHeight: 1.3,
+          }}>{r.value}</div>
         </div>
       ))}
     </div>

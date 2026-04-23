@@ -11,17 +11,22 @@ const DR_INK_SOFT   = '#6B5C54';
 const DR_LINE       = 'rgba(47,52,48,0.08)';
 const DR_FIELD      = '#F7F6F2';
 
-function SideDrawer({ open, onClose, go, user }) {
+function SideDrawer({ open, onClose, go, user, walletBalance }) {
   if (!open) return null;
 
   const items = [
+    { label: 'Wallet',                      key: 'wallet',    icon: IconWallet, route: 'wallet' },
     { label: 'Store Locator',               key: 'store',     icon: IconPin, route: 'store' },
     { label: 'My Order',                    key: 'orders',    icon: IconBag, route: 'orders' },
+    { label: 'Customise Jewel',             key: 'customise', icon: IconGem, route: 'customise' },
     { label: 'Gold Schemes',                key: 'schemes',   icon: IconCoins, route: 'schemes' },
     { label: 'Book My Gold',                key: 'book',      icon: IconCalendar, route: 'book' },
-    { label: 'Jewellery Rate Calculator',   key: 'calc',      icon: IconCalc, route: 'calc' },
+    { label: 'Rate Calculator',             key: 'calc',      icon: IconCalc, route: 'calc' },
     { label: 'Refer a friend',              key: 'refer',     icon: IconShare, route: 'refer' },
   ];
+
+  const hasWallet = typeof walletBalance === 'number' && Number.isFinite(walletBalance);
+  const formattedWallet = hasWallet ? `₹${walletBalance.toLocaleString('en-IN')}` : null;
   const policyItems = [
     { label: 'Privacy Policy', key: 'privacy', icon: IconShield },
     { label: 'Refund Policy',  key: 'refund',  icon: IconRefund },
@@ -88,17 +93,48 @@ function SideDrawer({ open, onClose, go, user }) {
             </div>
           </div>
 
-          {/* View profile link */}
+          {/* View profile link + wallet balance */}
           <button onClick={() => { go('profile'); onClose(); }} style={{
             marginTop: 18, background: 'none', border: 'none', cursor: 'pointer',
-            padding: 0, display: 'flex', alignItems: 'center', gap: 6,
-            fontFamily: `'Manrope', ${DR.sans}`, fontSize: 11, letterSpacing: 1.6,
-            color: DR_ACCENT_DK, fontWeight: 700,
+            padding: 0, width: '100%',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            gap: 12, textAlign: 'left',
           }}>
-            VIEW PROFILE
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="9 6 15 12 9 18"/>
-            </svg>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              fontFamily: `'Manrope', ${DR.sans}`, fontSize: 11, letterSpacing: 1.6,
+              color: DR_ACCENT_DK, fontWeight: 700,
+            }}>
+              VIEW PROFILE
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 6 15 12 9 18"/>
+              </svg>
+            </span>
+
+            {formattedWallet && (
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={(e) => { e.stopPropagation(); go('wallet'); onClose(); }}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); go('wallet'); onClose(); } }}
+                aria-label={`Wallet balance ${formattedWallet}`}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '4px 10px', borderRadius: 999,
+                  background: 'rgba(122,88,67,0.08)',
+                  border: `1px solid rgba(122,88,67,0.22)`,
+                  color: DR_ACCENT_DK,
+                  fontFamily: `'Manrope', ${DR.sans}`, fontSize: 11, fontWeight: 700, letterSpacing: 0.3,
+                  whiteSpace: 'nowrap', cursor: 'pointer',
+                }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="6" width="18" height="13" rx="2"/>
+                  <path d="M3 10h14"/>
+                  <circle cx="17.5" cy="14" r="1"/>
+                </svg>
+                {formattedWallet}
+              </span>
+            )}
           </button>
         </div>
 
@@ -189,6 +225,19 @@ const IconBag = () => (
   <SVGWrap>
     <path d="M5 8h14l-1.2 12.2a2 2 0 0 1-2 1.8h-7.6a2 2 0 0 1-2-1.8Z"/>
     <path d="M9 8V6a3 3 0 0 1 6 0v2"/>
+  </SVGWrap>
+);
+const IconWallet = () => (
+  <SVGWrap>
+    <rect x="3" y="6" width="18" height="13" rx="2"/>
+    <path d="M3 10h14"/>
+    <path d="M16 14h3"/>
+  </SVGWrap>
+);
+const IconGem = () => (
+  <SVGWrap>
+    <path d="M6 3h12l3 5-9 13L3 8Z"/>
+    <path d="M3 8h18M9 3l-3 5 6 13 6-13-3-5"/>
   </SVGWrap>
 );
 const IconCoins = () => (

@@ -33,6 +33,9 @@ import './pages/LoyaltyRegister.jsx';
 import './pages/Coupons.jsx';
 import './pages/Cart.jsx';
 import './pages/Checkout.jsx';
+import './pages/TodaysRate.jsx';
+import './pages/Categories.jsx';
+import './pages/CustomiseJewel.jsx';
 
 // Root router (defines window.App)
 import './App.jsx';

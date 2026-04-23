@@ -11,6 +11,14 @@ const SEED = {
     phone: '+91 (555) 123-4567',
     memberSince: 2021,
     initials: 'SS',
+    walletBalance: 12450,             // ₹ available in wallet
+    kyc: {
+      status: 'verified',              // 'verified' · any other value hides the section
+      pan: 'ABCDE1234F',
+      aadhaar: '1234 5678 9012',       // shown masked in the UI
+      dob: '14 Aug 1994',
+      verifiedOn: '12 Mar 2024',
+    },
   },
   orders: [
     { id: 'AUR-2814', date: '14 Apr 2026', status: 'shipped', eta: '22 Apr',
@@ -73,8 +81,17 @@ const SEED = {
 
 function App() {
   const initial = (() => {
-    try { return JSON.parse(localStorage.getItem('jewel_state_v3')) || SEED; }
-    catch { return SEED; }
+    try {
+      const saved = JSON.parse(localStorage.getItem('jewel_state_v3'));
+      if (!saved) return SEED;
+      // Backfill any new fields added to SEED (e.g., user.kyc) so existing
+      // persisted state picks them up without the user having to clear storage.
+      return {
+        ...SEED,
+        ...saved,
+        user: { ...SEED.user, ...(saved.user || {}) },
+      };
+    } catch { return SEED; }
   })();
   const [state, setState] = useState(initial);
 
@@ -104,7 +121,7 @@ function App() {
   switch (page) {
     case 'login':      content = <LoginPage     {...pageProps}/>; break;
     case 'listing':    content = <ListingPage   {...pageProps}/>; break;
-    case 'categories': content = <ListingPage   {...pageProps}/>; break;
+    case 'categories': content = <CategoriesPage {...pageProps}/>; break;
     case 'product':    content = <ProductPage   {...pageProps}/>; break;
     case 'profile':    content = <ProfilePage   {...pageProps}/>; break;
     case 'orders':     content = <OrdersPage    {...pageProps}/>; break;
@@ -125,6 +142,8 @@ function App() {
     case 'track':      content = <TrackStub     {...pageProps}/>; break;
     case 'notifications': content = <NotificationsPage {...pageProps}/>; break;
     case 'search':     content = <SearchPage    {...pageProps}/>; break;
+    case 'rate':       content = <TodaysRatePage {...pageProps}/>; break;
+    case 'customise':  content = <CustomiseJewelPage {...pageProps}/>; break;
     default:           content = <HomePage      {...pageProps}/>;
   }
 
