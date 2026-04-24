@@ -1033,9 +1033,15 @@ function SizeChartLink({ onClick }) {
 }
 
 function SizeChartSheet({ open, onClose, selectedSize, onPickSize }) {
-  // Respect prefers-reduced-motion and clean up body-scroll lock
+  // Swipe-to-dismiss: track pointer Y on the handle, translate sheet by delta,
+  // snap-close if user pulls past threshold.
+  const [dragY, setDragY] = React.useState(0);
+  const [dragging, setDragging] = React.useState(false);
+  const startYRef = React.useRef(0);
+  const DISMISS_THRESHOLD = 90;  // px — pull this far and the sheet closes
+
   React.useEffect(() => {
-    if (!open) return;
+    if (!open) { setDragY(0); setDragging(false); return; }
     const onKey = e => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
@@ -1043,43 +1049,80 @@ function SizeChartSheet({ open, onClose, selectedSize, onPickSize }) {
 
   if (!open) return null;
 
+  function handleTouchStart(e) {
+    startYRef.current = e.touches[0].clientY;
+    setDragging(true);
+  }
+  function handleTouchMove(e) {
+    const delta = e.touches[0].clientY - startYRef.current;
+    setDragY(Math.max(0, delta));        // only allow drag down
+  }
+  function handleTouchEnd() {
+    setDragging(false);
+    if (dragY > DISMISS_THRESHOLD) { onClose(); return; }
+    setDragY(0);                          // snap back
+  }
+
+  // While user is actively dragging we suspend the CSS animation and use
+  // inline transform; once released and below threshold, transitions snap back.
+  const sheetTransform = dragging || dragY > 0 ? `translateY(${dragY}px)` : undefined;
+  const sheetTransition = dragging ? 'none' : 'transform 260ms cubic-bezier(.2,.8,.2,1)';
+
   return (
     <>
-      {/* Scrim — covers only the phone frame (position: absolute on the
-          scrolling product container which is `position: relative`). The
-          4:5 image gallery above stays visible, so the sheet height tops
-          out at ~75% to ensure 2–3 cm of gallery is still exposed. */}
+      {/* Uniform semi-transparent dark overlay — position: fixed so it never
+          anchors to a scrolled container. The outer app wrapper has a
+          `transform`, which makes it the containing block for fixed children,
+          so the scrim is scoped to the Phone chrome in dev preview and to the
+          viewport in production. */}
       <div
         onClick={onClose}
         aria-label="Close size chart"
         style={{
-          position: 'absolute', inset: 0, zIndex: 40,
-          background: 'linear-gradient(180deg, rgba(47,52,48,0) 0%, rgba(47,52,48,0.12) 25%, rgba(47,52,48,0.48) 60%)',
+          position: 'fixed', inset: 0, zIndex: 40,
+          background: 'rgba(15,14,13,0.55)',
           animation: 'sc-fade 220ms ease',
         }}
       />
 
-      {/* Bottom sheet */}
+      {/* Bottom sheet — docked to bottom edge, slides up from below */}
       <div
         role="dialog"
         aria-modal="true"
         aria-label="Ring size chart"
         onClick={e => e.stopPropagation()}
         style={{
-          position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 50,
-          maxHeight: '75%', display: 'flex', flexDirection: 'column',
+          position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 50,
+          maxHeight: '80vh', display: 'flex', flexDirection: 'column',
           background: '#fff',
           borderTopLeftRadius: 22, borderTopRightRadius: 22,
-          boxShadow: '0 -12px 40px rgba(47,52,48,0.28)',
-          animation: 'sc-slideup 320ms cubic-bezier(.2,.8,.2,1)',
+          boxShadow: '0 -12px 40px rgba(15,14,13,0.28)',
+          animation: dragging ? 'none' : 'sc-slideup 340ms cubic-bezier(.2,.8,.2,1)',
+          transform: sheetTransform,
+          transition: sheetTransition,
           overflow: 'hidden',
+          willChange: 'transform',
         }}
       >
-        {/* Grab handle */}
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 2px' }}>
+        {/* Grab handle area — the visible pill is purely decorative; the
+            larger invisible padding around it captures swipe gestures. */}
+        <div
+          role="button"
+          tabIndex={0}
+          aria-label="Drag to dismiss"
+          onClick={onClose}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          style={{
+            display: 'flex', justifyContent: 'center',
+            padding: '10px 0 6px',
+            cursor: 'grab', touchAction: 'none',
+          }}
+        >
           <span style={{
-            width: 44, height: 4, borderRadius: 2,
-            background: 'rgba(47,52,48,0.18)',
+            width: 44, height: 5, borderRadius: 3,
+            background: 'rgba(47,52,48,0.28)',
           }}/>
         </div>
 

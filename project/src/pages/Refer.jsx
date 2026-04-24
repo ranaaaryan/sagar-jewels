@@ -163,7 +163,7 @@ function ReferPage({ go, state }) {
           ))}
         </div>
 
-        {/* Earnings snapshot */}
+        {/* Earnings snapshot (synced with the referral earnings list below) */}
         <SectionKicker kicker="Your earnings" title="Lifetime referral bonus"/>
 
         <div style={{
@@ -178,10 +178,10 @@ function ReferPage({ go, state }) {
             <div style={{
               fontFamily: `'Noto Serif', ${REF_T.serif}`, fontSize: 26, fontWeight: 700,
               color: REF_GOLD_DK, marginTop: 2,
-            }}>₹0</div>
+            }}>₹{REFERRAL_BONUSES.reduce((s, r) => s + r.earned, 0).toLocaleString('en-IN')}</div>
             <div style={{
               fontFamily: `'Manrope', ${REF_T.sans}`, fontSize: 11, color: '#6E655C', marginTop: 2,
-            }}>0 referrals so far</div>
+            }}>{REFERRAL_BONUSES.length} referrals so far</div>
           </div>
           <button style={{
             padding: '10px 16px', borderRadius: 10, border: `1px solid ${REF_GOLD}`,
@@ -190,6 +190,10 @@ function ReferPage({ go, state }) {
             letterSpacing: 0.6, textTransform: 'uppercase',
           }}>View ledger</button>
         </div>
+
+        {/* Bonus — per-referral earnings list */}
+        <SectionKicker kicker="Your network" title="Referral earnings"/>
+        <ReferralEarningsList items={REFERRAL_BONUSES}/>
 
         {/* Terms */}
         <div style={{
@@ -274,6 +278,113 @@ function SectionKicker({ kicker, title }) {
         fontFamily: `'Noto Serif', ${REF_T.serif}`, fontSize: 20, fontWeight: 700,
         color: '#1E1B13', marginTop: 4,
       }}>{title}</div>
+    </div>
+  );
+}
+
+// ─── Referral earnings (Bonus dashboard) ─────────────────────────
+// Mock data: each entry is a friend who signed up via the user's code.
+// `earned` is derived from their cumulative `spent` at the brand's
+// commission rate (0.5%–1% across metals; we use an effective 0.6%).
+const REFERRAL_BONUSES = [
+  { id: 'r1', name: 'Priya Kapoor',    initials: 'PK', joinedAt: '12 Nov 2024', orders: 4, spent: 186000, earned: 1116 },
+  { id: 'r2', name: 'Aarav Mehta',     initials: 'AM', joinedAt: '28 Sep 2024', orders: 2, spent:  94500, earned:  567 },
+  { id: 'r3', name: 'Riya Iyer',       initials: 'RI', joinedAt: '03 Aug 2024', orders: 6, spent: 238400, earned: 1430 },
+  { id: 'r4', name: 'Vikram Shah',     initials: 'VS', joinedAt: '17 Jun 2024', orders: 1, spent:  48900, earned:  293 },
+  { id: 'r5', name: 'Ananya Desai',    initials: 'AD', joinedAt: '02 May 2024', orders: 3, spent: 132000, earned:  792 },
+];
+
+function ReferralEarningsList({ items }) {
+  if (!items || items.length === 0) {
+    return (
+      <div style={{
+        padding: '22px 16px', borderRadius: 14,
+        background: '#fff', border: `1px dashed ${REF_T.line}`, textAlign: 'center',
+        fontFamily: `'Manrope', ${REF_T.sans}`, fontSize: 12, color: '#6E655C',
+      }}>
+        No referrals yet — share your code to start earning.
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      background: '#fff', borderRadius: 14, border: `1px solid ${REF_T.line}`,
+      overflow: 'hidden',
+      boxShadow: '0 2px 10px rgba(30,27,19,0.04)',
+    }}>
+      {/* Column header row — grid layout matches the data rows exactly */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '34px 1fr auto',
+        alignItems: 'center', gap: 12,
+        padding: '10px 16px',
+        fontFamily: `'Manrope', ${REF_T.sans}`, fontSize: 10,
+        color: '#9A8F84', letterSpacing: 1.2, textTransform: 'uppercase', fontWeight: 700,
+        borderBottom: `1px solid ${REF_T.line}`,
+        background: '#FBF7F3',
+      }}>
+        <span aria-hidden="true"/>
+        <span>Referral</span>
+        <span style={{ textAlign: 'right' }}>Earned</span>
+      </div>
+
+      {/* Mapped list of referral rows */}
+      {items.map((r, i) => (
+        <ReferralRow key={r.id} item={r} last={i === items.length - 1}/>
+      ))}
+    </div>
+  );
+}
+
+function ReferralRow({ item, last }) {
+  return (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: '34px minmax(0, 1fr) auto',
+      alignItems: 'center', gap: 12,
+      padding: '14px 16px',
+      borderBottom: last ? 'none' : `1px solid ${REF_T.line}`,
+    }}>
+      {/* Avatar */}
+      <span style={{
+        width: 34, height: 34, borderRadius: '50%',
+        background: 'linear-gradient(135deg, #F5E2B3, #E3B24A)',
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        color: '#3E2E23',
+        fontFamily: `'Noto Serif', ${REF_T.serif}`, fontSize: 12, fontWeight: 700,
+        letterSpacing: 0.3, flexShrink: 0,
+      }}>{item.initials}</span>
+
+      {/* Name + meta */}
+      <div style={{ minWidth: 0 }}>
+        <div style={{
+          fontFamily: `'Noto Serif', ${REF_T.serif}`, fontSize: 14, fontWeight: 700,
+          color: '#1E1B13', lineHeight: 1.2,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>{item.name}</div>
+        <div style={{
+          marginTop: 2,
+          fontFamily: `'Manrope', ${REF_T.sans}`, fontSize: 10.5, color: '#6E655C',
+          letterSpacing: 0.3,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {item.orders} order{item.orders === 1 ? '' : 's'} · joined {item.joinedAt}
+        </div>
+      </div>
+
+      {/* Amount — right-aligned, whole number in serif for weight */}
+      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+        <div style={{
+          fontFamily: `'Noto Serif', ${REF_T.serif}`, fontSize: 15, fontWeight: 700,
+          color: REF_GOLD_DK, whiteSpace: 'nowrap',
+        }}>₹{item.earned.toLocaleString('en-IN')}</div>
+        <div style={{
+          marginTop: 1,
+          fontFamily: `'Manrope', ${REF_T.sans}`, fontSize: 9.5, color: '#9A8F84',
+          letterSpacing: 0.4, textTransform: 'uppercase', fontWeight: 600,
+        }}>on ₹{item.spent.toLocaleString('en-IN')}</div>
+      </div>
     </div>
   );
 }
