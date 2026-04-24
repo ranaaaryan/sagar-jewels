@@ -78,9 +78,12 @@ function HomePage({ go, state }) {
             <line x1="4" y1="17" x2="20" y2="17"/>
           </svg>
         </button>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontFamily: `'Noto Serif', ${TH.serif}`, fontWeight: 700, fontSize: 16, color: '#000' }}>Welcome Back</div>
-          <div style={{ fontFamily: `'Manrope', ${TH.sans}`, fontSize: 13, letterSpacing: 0.5, color: '#000', marginTop: 3 }}>{user.name.split(' ')[0]}</div>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center' }}>
+          <img
+            src="assets/logo/sagar-jewellers.svg"
+            alt="Sagar Jewellers"
+            style={{ height: 40, width: 'auto', display: 'block', maxWidth: '100%' }}
+          />
         </div>
         <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
           <button style={{
@@ -551,6 +554,7 @@ function CustomiseJewelBanner({ go }) {
     </div>
   );
 }
+
 
 window.HomePage = HomePage;
 

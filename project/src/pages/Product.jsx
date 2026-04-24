@@ -25,6 +25,29 @@ function ProductPage({ go, state, setState }) {
   const [caratIdx, setCaratIdx]   = React.useState(0);
   const [saved, setSaved]         = React.useState(false);
   const [imgIdx, setImgIdx]       = React.useState(0);
+  const [sizeChartOpen, setSizeChartOpen] = React.useState(false);
+  const [shareFeedback, setShareFeedback] = React.useState(null);   // 'copied' | 'error' | null
+
+  async function onShare() {
+    const shareData = {
+      title: 'Diamond Earring · Sagar Jewellers',
+      text: 'Found this on Sagar Jewellers — Diamond Earring, ₹56,000.',
+      url: typeof window !== 'undefined' ? window.location.href : '',
+    };
+    try {
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(shareData.url || shareData.title);
+        setShareFeedback('copied');
+        setTimeout(() => setShareFeedback(null), 1800);
+      }
+    } catch (_) {
+      // User cancelled share sheet — swallow silently
+    }
+  }
 
   const defaultAddr = (state?.addresses || []).find(a => a.isDefault) || (state?.addresses || [])[0];
   const [pincode, setPincode]         = React.useState(defaultAddr?.pincode || '');
@@ -134,6 +157,52 @@ function ProductPage({ go, state, setState }) {
           background: `url(${gallery[imgIdx]}) center / cover no-repeat, #F1EBE3`,
           boxShadow: '0 2px 12px rgba(0,0,0,0.05)',
         }}>
+          {/* Share button — overlays top-right */}
+          <button
+            type="button"
+            onClick={onShare}
+            aria-label="Share this product"
+            style={{
+              position: 'absolute', top: 14, right: 14, zIndex: 2,
+              width: 38, height: 38, borderRadius: '50%',
+              background: 'rgba(255,255,255,0.92)',
+              border: 'none', cursor: 'pointer',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+              backdropFilter: 'blur(6px)',
+              WebkitBackdropFilter: 'blur(6px)',
+              transition: 'transform 160ms ease',
+            }}
+            onMouseDown={e => e.currentTarget.style.transform = 'scale(0.95)'}
+            onMouseUp={e => e.currentTarget.style.transform = ''}
+            onMouseLeave={e => e.currentTarget.style.transform = ''}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={PS_INK}
+                 strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="18" cy="5"  r="3"/>
+              <circle cx="6"  cy="12" r="3"/>
+              <circle cx="18" cy="19" r="3"/>
+              <path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/>
+            </svg>
+          </button>
+
+          {/* Tiny copied-confirmation badge (only when fallback fires) */}
+          {shareFeedback === 'copied' && (
+            <div style={{
+              position: 'absolute', top: 18, right: 60, zIndex: 2,
+              padding: '6px 10px', borderRadius: 999,
+              background: 'rgba(30,27,19,0.86)', color: '#fff',
+              fontFamily: FS.sans, fontSize: 10.5, fontWeight: 700, letterSpacing: 0.6,
+              whiteSpace: 'nowrap',
+              animation: 'psFadeIn 160ms ease',
+            }}>
+              Link copied
+            </div>
+          )}
+          <style>{`
+            @keyframes psFadeIn { from { opacity: 0; transform: translateX(6px); } to { opacity: 1; transform: translateX(0); } }
+          `}</style>
+
           {/* dot indicators */}
           <div style={{
             position: 'absolute', bottom: 14, left: '50%', transform: 'translateX(-50%)',
@@ -213,7 +282,10 @@ function ProductPage({ go, state, setState }) {
                     options={colorsMore} onPick={n => setOpenMenu(null)}/>
         </VariantRow>
 
-        <VariantRow label="Size" value={`US ${sizes[sizeIdx]}`}>
+        <VariantRow
+          label={`Size · US ${sizes[sizeIdx]}`}
+          rightSlot={<SizeChartLink onClick={() => setSizeChartOpen(true)}/>}
+        >
           {sizes.map((s, i) => (
             <VariantChip key={s} active={i === sizeIdx} onClick={() => setSizeIdx(i)}>{s}</VariantChip>
           ))}
@@ -572,6 +644,17 @@ function ProductPage({ go, state, setState }) {
           Add to Cart
         </button>
       </div>
+
+      <SizeChartSheet
+        open={sizeChartOpen}
+        onClose={() => setSizeChartOpen(false)}
+        selectedSize={sizes[sizeIdx]}
+        onPickSize={s => {
+          const next = sizes.indexOf(s);
+          if (next >= 0) setSizeIdx(next);
+          setSizeChartOpen(false);
+        }}
+      />
     </div>
   );
 }
@@ -594,18 +677,20 @@ function Pill({ children, bg, fg }) {
   );
 }
 
-function VariantRow({ label, value, children }) {
+function VariantRow({ label, value, rightSlot, children }) {
   return (
     <div style={{ marginTop: 20 }}>
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
-        marginBottom: 10,
+        marginBottom: 10, gap: 12,
       }}>
         <span style={{
           fontFamily: FS.sans, fontSize: 11, letterSpacing: 1.2, color: PS_SOFT,
           fontWeight: 600,
         }}>{label}</span>
-        <span style={{ fontFamily: FS.serif, fontSize: 13, color: PS_INK, fontWeight: 600 }}>{value}</span>
+        {rightSlot ?? (
+          <span style={{ fontFamily: FS.serif, fontSize: 13, color: PS_INK, fontWeight: 600 }}>{value}</span>
+        )}
       </div>
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>{children}</div>
     </div>
@@ -903,6 +988,230 @@ function ReflectionCard({ n, d, body }) {
       <div style={{ marginTop: 10 }}><Stars n={5}/></div>
       <p style={{ margin: '10px 0 0', fontFamily: FS.sans, fontSize: 13, color: PS_SOFT, lineHeight: 1.55 }}>{body}</p>
     </div>
+  );
+}
+
+/* ─────────────────── Size Chart ─────────────────── */
+// US ring size → inner diameter in millimetres. Values 5–10 match the
+// spec provided; 11–15 follow the standard ~1.15 mm-per-size increment.
+const RING_SIZE_CHART = [
+  { size: 5,  mm: 44.8 },
+  { size: 6,  mm: 45.9 },
+  { size: 7,  mm: 47.1 },
+  { size: 8,  mm: 48.1 },
+  { size: 9,  mm: 49.0 },
+  { size: 10, mm: 50.0 },
+  { size: 11, mm: 51.2 },
+  { size: 12, mm: 52.3 },
+  { size: 13, mm: 53.5 },
+  { size: 14, mm: 54.7 },
+  { size: 15, mm: 55.9 },
+];
+
+function SizeChartLink({ onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        background: 'transparent', border: 'none', cursor: 'pointer', padding: 0,
+        display: 'inline-flex', alignItems: 'center', gap: 4,
+        fontFamily: FS.sans, fontSize: 11.5, fontWeight: 700,
+        letterSpacing: 1, textTransform: 'uppercase',
+        color: PS_ACCENT_DK,
+      }}
+      aria-label="Open size chart"
+    >
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="8" width="18" height="8" rx="1"/>
+        <path d="M7 8v3M11 8v5M15 8v3M19 8v5"/>
+      </svg>
+      Size Chart
+    </button>
+  );
+}
+
+function SizeChartSheet({ open, onClose, selectedSize, onPickSize }) {
+  // Respect prefers-reduced-motion and clean up body-scroll lock
+  React.useEffect(() => {
+    if (!open) return;
+    const onKey = e => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <>
+      {/* Scrim — covers only the phone frame (position: absolute on the
+          scrolling product container which is `position: relative`). The
+          4:5 image gallery above stays visible, so the sheet height tops
+          out at ~75% to ensure 2–3 cm of gallery is still exposed. */}
+      <div
+        onClick={onClose}
+        aria-label="Close size chart"
+        style={{
+          position: 'absolute', inset: 0, zIndex: 40,
+          background: 'linear-gradient(180deg, rgba(47,52,48,0) 0%, rgba(47,52,48,0.12) 25%, rgba(47,52,48,0.48) 60%)',
+          animation: 'sc-fade 220ms ease',
+        }}
+      />
+
+      {/* Bottom sheet */}
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Ring size chart"
+        onClick={e => e.stopPropagation()}
+        style={{
+          position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 50,
+          maxHeight: '75%', display: 'flex', flexDirection: 'column',
+          background: '#fff',
+          borderTopLeftRadius: 22, borderTopRightRadius: 22,
+          boxShadow: '0 -12px 40px rgba(47,52,48,0.28)',
+          animation: 'sc-slideup 320ms cubic-bezier(.2,.8,.2,1)',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Grab handle */}
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 2px' }}>
+          <span style={{
+            width: 44, height: 4, borderRadius: 2,
+            background: 'rgba(47,52,48,0.18)',
+          }}/>
+        </div>
+
+        {/* Header */}
+        <div style={{
+          padding: '10px 20px 14px',
+          display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10,
+          borderBottom: `1px solid ${PS_LINE}`,
+        }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{
+              fontFamily: FS.serif, fontSize: 20, fontWeight: 700, color: PS_INK, lineHeight: 1.2,
+            }}>Ring Size Guide</div>
+            <div style={{
+              marginTop: 4,
+              fontFamily: FS.sans, fontSize: 11.5, color: PS_SOFT, lineHeight: 1.45,
+            }}>
+              US sizes with inner diameter in millimetres. Tap a size to apply.
+            </div>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Close" style={{
+            width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
+            background: 'rgba(47,52,48,0.06)', border: 'none', cursor: 'pointer',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            color: PS_INK,
+          }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* Table — column head + rows. Overflow-y auto so the list scrolls
+            inside the sheet without growing it past 75% of the frame. */}
+        <div style={{ overflowY: 'auto', flex: 1 }}>
+          <div style={{
+            display: 'grid', gridTemplateColumns: '1fr 1fr auto',
+            alignItems: 'center', gap: 10,
+            padding: '10px 20px',
+            fontFamily: FS.sans, fontSize: 10, letterSpacing: 1.4,
+            color: PS_SOFT, textTransform: 'uppercase', fontWeight: 700,
+            borderBottom: `1px solid ${PS_LINE}`,
+          }}>
+            <span>US Size</span>
+            <span>Diameter</span>
+            <span aria-hidden="true" style={{ width: 22 }}/>
+          </div>
+
+          {RING_SIZE_CHART.map((row, i) => {
+            const active = Number(selectedSize) === row.size;
+            return (
+              <button
+                key={row.size}
+                type="button"
+                onClick={() => onPickSize?.(row.size)}
+                style={{
+                  width: '100%', border: 'none', background: active ? 'rgba(172,129,108,0.10)' : 'transparent',
+                  cursor: 'pointer', padding: 0, textAlign: 'left',
+                  borderBottom: i < RING_SIZE_CHART.length - 1 ? `1px solid ${PS_LINE}` : 'none',
+                  transition: 'background 160ms ease',
+                }}
+              >
+                <div style={{
+                  display: 'grid', gridTemplateColumns: '1fr 1fr auto',
+                  alignItems: 'center', gap: 10,
+                  padding: '14px 20px',
+                }}>
+                  <span style={{
+                    fontFamily: FS.serif, fontSize: 16, fontWeight: 700,
+                    color: active ? PS_ACCENT_DK : PS_INK,
+                  }}>
+                    {row.size}
+                    {active && (
+                      <span style={{
+                        marginLeft: 8, padding: '2px 7px', borderRadius: 999,
+                        background: PS_ACCENT_DK, color: '#fff',
+                        fontFamily: FS.sans, fontSize: 9, fontWeight: 700, letterSpacing: 0.6,
+                      }}>YOUR PICK</span>
+                    )}
+                  </span>
+                  <span style={{
+                    fontFamily: FS.sans, fontSize: 14, fontWeight: 600,
+                    color: active ? PS_ACCENT_DK : PS_INK,
+                  }}>
+                    {row.mm.toFixed(1)} <span style={{ color: PS_SOFT, fontWeight: 500 }}>mm</span>
+                  </span>
+                  <span style={{
+                    width: 22, height: 22, borderRadius: '50%',
+                    border: `1.5px solid ${active ? PS_ACCENT_DK : 'rgba(47,52,48,0.18)'}`,
+                    background: active ? PS_ACCENT_DK : 'transparent',
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    {active && (
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                    )}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Footer tip */}
+        <div style={{
+          padding: '12px 20px 18px',
+          borderTop: `1px solid ${PS_LINE}`,
+          background: 'rgba(172,129,108,0.05)',
+          display: 'flex', alignItems: 'flex-start', gap: 10,
+          fontFamily: FS.sans, fontSize: 11, color: PS_SOFT, lineHeight: 1.5,
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={PS_ACCENT_DK}
+               strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}>
+            <circle cx="12" cy="12" r="9"/>
+            <path d="M12 8v5M12 16h.01"/>
+          </svg>
+          <span>
+            Measure the inner diameter of a ring that fits you, then match it against the
+            chart above. Not sure? Visit any Sagar store for a free fitting.
+          </span>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes sc-fade { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes sc-slideup {
+          from { transform: translateY(100%); }
+          to   { transform: translateY(0); }
+        }
+      `}</style>
+    </>
   );
 }
 

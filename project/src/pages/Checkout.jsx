@@ -14,6 +14,21 @@ const CX_INK       = 'rgb(48,51,51)';
 const CX_INK_SOFT  = 'rgb(107,92,84)';
 const CX_LINE      = 'rgba(176,178,177,0.22)';
 const CX_GOLD      = 'rgb(116,92,0)';
+const CX_GOLD_DK   = '#5A4700';
+const CX_GOLD_TINT = 'rgba(116,92,0,0.08)';
+
+// Known coupon catalog — value resolved at apply-time. Unknown codes fall back
+// to ₹2000 so the existing demo UX still works.
+const KNOWN_COUPONS = {
+  SAGAR10:    2000,
+  FIRSTPAIR:  2500,
+  MAKING100:  5000,
+  BIGVOUCHER: 100000,   // demo voucher — usually exceeds the order total
+};
+function resolveCouponValue(code) {
+  const v = KNOWN_COUPONS[code?.toUpperCase?.()];
+  return typeof v === 'number' ? v : 2000;
+}
 
 function CheckoutPage({ go, state, setState }) {
   const defaultAddr = (state.addresses.find(a => a.isDefault) || state.addresses[0]);
@@ -25,6 +40,7 @@ function CheckoutPage({ go, state, setState }) {
   const [placed, setPlaced] = React.useState(false);
   const [voucher, setVoucher] = React.useState('');
   const [coupon, setCoupon] = React.useState('');
+  const [residualToast, setResidualToast] = React.useState(null);  // { code, amount } after voucher overflow
 
   const items = state.cart;
   const subtotal = items.reduce((s, p) => s + p.price * (p.qty || 1), 0);
@@ -35,7 +51,81 @@ function CheckoutPage({ go, state, setState }) {
   const tax      = Math.round((subtotal - discount) * 0.003 * 100) / 100;  // ~0.3% GST on jewellery
   const total    = subtotal + making + shipping + tax - discount;
 
+  // ── Digital Gold redemption derivation ─────────────────
+  const ownedGm       = Number(state.user.digitalGold?.weightGm || 0);
+  const sellRate      = Number(state.goldRate?.sell || 0);
+  const maxGoldValue  = ownedGm * sellRate;
+  const useGold       = !!state.cartPayment?.useDigitalGold && ownedGm > 0.001 && sellRate > 0;
+  const goldApplied   = useGold ? Math.min(maxGoldValue, total) : 0;
+  const goldGmApplied = goldApplied > 0 ? goldApplied / sellRate : 0;
+  const cashRemaining = Math.max(0, total - goldApplied);
+  const fullyCoveredByGold = useGold && cashRemaining === 0 && goldApplied > 0;
+
+  // PAN gate — triggers when the order total crosses ₹2L.
+  // Uses `total` (not `cashRemaining`) because the IT threshold applies to
+  // transaction value, not the post-gold residual.
+  const pan = usePanGate({ user: state.user, cumulativeValue: total });
+  const [pendingPlace, setPendingPlace] = React.useState(false);
+
   const addr = state.addresses.find(a => a.id === addressId) || state.addresses[0];
+
+  // ── Coupon apply with residual-to-wallet logic ─────────
+  function applyCoupon(raw) {
+    const code = raw.trim().toUpperCase();
+    if (!code) return;
+    const nominalValue = resolveCouponValue(code);
+    const cap = Math.max(0, total);                 // residual is any value above the order total
+    const applied = Math.min(nominalValue, cap);
+    const residual = nominalValue - applied;
+
+    setState(s => ({
+      ...s,
+      cartCoupon: { code, value: applied },
+      voucherWallet: residual > 0
+        ? [
+            {
+              id: `vw_${Date.now()}`,
+              code: `${code}-R`,
+              balance: residual,
+              source: `Residual from ${code}`,
+              createdAt: new Date().toISOString(),
+              expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+            },
+            ...(s.voucherWallet || []),
+          ]
+        : (s.voucherWallet || []),
+    }));
+    setCoupon('');
+    if (residual > 0) {
+      setResidualToast({ code: `${code}-R`, amount: residual });
+    }
+  }
+
+  // ── Place order: debit gold (if used) before showing confirmation ────
+  function placeOrder() {
+    if (pan.blocked) { setPendingPlace(true); pan.openGate(); return; }
+    actuallyPlace();
+  }
+
+  function actuallyPlace() {
+    if (goldGmApplied > 0) {
+      setState(s => ({
+        ...s,
+        user: { ...s.user, digitalGold: {
+          ...s.user.digitalGold,
+          weightGm: +((s.user.digitalGold?.weightGm || 0) - goldGmApplied).toFixed(4),
+        }},
+      }));
+    }
+    setPlaced(true);
+    setPendingPlace(false);
+  }
+
+  function onPanUploaded(panImage) {
+    setState(s => ({ ...s, user: { ...s.user, panImage } }));
+    pan.closeGate();
+    if (pendingPlace) actuallyPlace();
+  }
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: CX_BG, minHeight: 0 }}>
@@ -119,8 +209,32 @@ function CheckoutPage({ go, state, setState }) {
           }}>Send me order related updates on WhatsApp</span>
         </div>
 
+        {/* ─── Digital Gold redemption ─── */}
+        {ownedGm > 0.001 && (
+          <>
+            <SectionHead title="Pay with Digital Gold"/>
+            <div style={{ padding: '0 15px' }}>
+              <GoldRedemptionCard
+                ownedGm={ownedGm}
+                sellRate={sellRate}
+                useGold={useGold}
+                goldApplied={goldApplied}
+                goldGmApplied={goldGmApplied}
+                cashRemaining={cashRemaining}
+                total={total}
+                onToggle={() => setState(s => ({
+                  ...s,
+                  cartPayment: { ...(s.cartPayment || {}), useDigitalGold: !useGold },
+                }))}
+              />
+            </div>
+          </>
+        )}
+
         {/* ─── Payment Method ─── */}
-        <SectionHead title="Payment Method"/>
+        {!fullyCoveredByGold && (
+        <>
+        <SectionHead title={useGold ? 'Remaining payment' : 'Payment Method'}/>
         <div style={{ padding: '0 15px', display: 'flex', flexDirection: 'column', gap: 15 }}>
           {/* Card — expanded by default showing saved card */}
           <PayCard selected={payMethod === 'card'} onClick={() => setPayMethod('card')}>
@@ -170,6 +284,8 @@ function CheckoutPage({ go, state, setState }) {
             </div>
           </PayCard>
         </div>
+        </>
+        )}
 
         {/* ─── Fulfillment (Home Delivery / Store Pickup) ─── */}
         <SectionHead title="Fulfillment"/>
@@ -250,12 +366,7 @@ function CheckoutPage({ go, state, setState }) {
             actionLabel="Apply"
             placeholderColor="rgb(180,182,182)"
             actionColor={CX_ACCENT}
-            onAction={() => {
-              if (coupon.trim()) {
-                setState(s => ({ ...s, cartCoupon: { code: coupon.trim().toUpperCase(), value: 2000 } }));
-                setCoupon('');
-              }
-            }}
+            onAction={() => applyCoupon(coupon)}
           />
         </div>
 
@@ -272,9 +383,16 @@ function CheckoutPage({ go, state, setState }) {
                   value={shipping === 0 ? 'Complimentary' : `₹${shipping}`}
                   valueColor={shipping === 0 ? CX_ACCENT : CX_INK}/>
           <SumRow label="Estimated Tax" value={`₹${tax.toLocaleString('en-IN', {minimumFractionDigits: 2})}`}/>
+          {useGold && goldApplied > 0 && (
+            <SumRow
+              label={`Digital gold · ${goldGmApplied.toFixed(4)} g`}
+              value={`−₹${Math.round(goldApplied).toLocaleString('en-IN')}`}
+              valueColor={CX_GOLD_DK}
+            />
+          )}
           <div style={{ height: 1, background: CX_LINE, margin: '2px 0' }}/>
-          <SumRow label="Total"
-                  value={`₹${total.toLocaleString('en-IN', {minimumFractionDigits: 2})}`}
+          <SumRow label={useGold && goldApplied > 0 ? 'Payable now' : 'Total'}
+                  value={`₹${(useGold ? cashRemaining : total).toLocaleString('en-IN', {minimumFractionDigits: 2})}`}
                   bold/>
         </div>
 
@@ -286,13 +404,27 @@ function CheckoutPage({ go, state, setState }) {
         </div>
       </div>
 
+      {/* ─── Residual voucher toast (above sticky CTA) ─── */}
+      {residualToast && (
+        <div style={{ padding: '0 18px 4px' }}>
+          <SuccessBanner
+            tone="voucher"
+            title={`₹${residualToast.amount.toLocaleString('en-IN')} saved to your Voucher Wallet`}
+            sub={`Your voucher exceeded this order — we stored the rest as ${residualToast.code}.`}
+            action={{ label: 'View wallet', onClick: () => go('wallet-vouchers') }}
+            onDismiss={() => setResidualToast(null)}
+            timeout={6500}
+          />
+        </div>
+      )}
+
       {/* ─── Sticky "Complete Purchase" CTA ─── */}
       <div style={{
         background: 'rgba(247,246,242,0.92)', backdropFilter: 'blur(12px)',
         padding: '10px 24px 16px',
         borderTopLeftRadius: 28, borderTopRightRadius: 28,
       }}>
-        <button onClick={() => setPlaced(true)} style={{
+        <button onClick={placeOrder} style={{
           width: '100%', height: 66, borderRadius: 999, border: 'none',
           background: '#AF826D',
           color: '#fff', cursor: 'pointer',
@@ -307,8 +439,20 @@ function CheckoutPage({ go, state, setState }) {
         </button>
       </div>
 
-      {placed && <PlacedSheet total={total} payLabel={payLabel(payMethod)} addr={addr}
-                              onClose={() => { setPlaced(false); go('orders'); }}/>}
+      <PanGateModal
+        open={pan.open}
+        pendingValue={total}
+        panNumber={state.user.kyc?.pan}
+        onSubmit={onPanUploaded}
+        onCancel={() => { pan.closeGate(); setPendingPlace(false); }}
+      />
+
+      {placed && <PlacedSheet
+                    total={useGold ? cashRemaining : total}
+                    goldGm={goldGmApplied}
+                    payLabel={fullyCoveredByGold ? 'digital gold' : payLabel(payMethod)}
+                    addr={addr}
+                    onClose={() => { setPlaced(false); go('orders'); }}/>}
     </div>
   );
 }
@@ -594,7 +738,7 @@ const linkBtn = {
   fontSize: 14, letterSpacing: 2,
 };
 
-function PlacedSheet({ onClose, total, payLabel, addr }) {
+function PlacedSheet({ onClose, total, payLabel, addr, goldGm }) {
   return (
     <div style={{
       position: 'absolute', inset: 0, background: 'rgba(42,39,36,0.55)',
@@ -612,8 +756,14 @@ function PlacedSheet({ onClose, total, payLabel, addr }) {
           Order placed
         </h3>
         <p style={{ fontFamily: 'Manrope', fontSize: 13, color: CX_INK_SOFT, marginTop: 8, lineHeight: 1.55 }}>
-          We've charged ₹{total.toLocaleString('en-IN', {minimumFractionDigits: 2})} to your {payLabel}.
-          Your pieces will arrive at <b>{addr?.city || 'your address'}</b> in 2–4 business days.
+          {goldGm > 0 && total === 0 ? (
+            <>We&rsquo;ve deducted <b>{goldGm.toFixed(4)} g</b> from your digital gold vault to cover this order in full.</>
+          ) : goldGm > 0 ? (
+            <>Charged <b>₹{total.toLocaleString('en-IN', {minimumFractionDigits: 2})}</b> to your {payLabel}, and <b>{goldGm.toFixed(4)} g</b> deducted from your gold vault.</>
+          ) : (
+            <>We&rsquo;ve charged <b>₹{total.toLocaleString('en-IN', {minimumFractionDigits: 2})}</b> to your {payLabel}.</>
+          )}
+          {' '}Your pieces will arrive at <b>{addr?.city || 'your address'}</b> in 2–4 business days.
         </p>
         <button onClick={onClose} style={{
           marginTop: 18, width: '100%', height: 52, borderRadius: 999, border: 'none',
@@ -622,6 +772,127 @@ function PlacedSheet({ onClose, total, payLabel, addr }) {
         }}>Track Order</button>
       </div>
     </div>
+  );
+}
+
+// ── Gold Redemption Card ─────────────────────────────────────────
+function GoldRedemptionCard({
+  ownedGm, sellRate, useGold,
+  goldApplied, goldGmApplied, cashRemaining, total,
+  onToggle,
+}) {
+  const vaultValue = Math.round(ownedGm * sellRate);
+  const coveredPct = total > 0 ? Math.min(100, Math.round((goldApplied / total) * 100)) : 0;
+
+  return (
+    <div style={{
+      background: useGold
+        ? 'linear-gradient(180deg, #FBF7F1 0%, #F4EADD 100%)'
+        : '#fff',
+      borderRadius: 12,
+      border: `1px solid ${useGold ? 'rgba(116,92,0,0.35)' : 'rgba(176,178,177,0.22)'}`,
+      padding: '16px 18px 16px',
+      display: 'flex', flexDirection: 'column', gap: 12,
+      transition: 'all 180ms ease',
+    }}>
+      {/* Header row: icon + label + toggle */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{
+          width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+          background: CX_GOLD_TINT, color: CX_GOLD_DK,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 9h14l-2 8H7z"/>
+            <path d="M7 9l2-3h6l2 3"/>
+          </svg>
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            fontFamily: 'Manrope', fontWeight: 700, fontSize: 14, color: CX_INK,
+          }}>Use my gold toward this order</div>
+          <div style={{
+            marginTop: 2,
+            fontFamily: 'Manrope', fontSize: 11.5, color: CX_INK_SOFT,
+          }}>
+            Vault: {ownedGm.toFixed(4)} g &middot; ₹{vaultValue.toLocaleString('en-IN')} at today&rsquo;s sell rate
+          </div>
+        </div>
+        <Switch on={useGold} onToggle={onToggle}/>
+      </div>
+
+      {/* Coverage readout (only when toggled on) */}
+      {useGold && goldApplied > 0 && (
+        <>
+          <div style={{
+            padding: '10px 12px', borderRadius: 10,
+            background: '#fff', border: `1px solid rgba(116,92,0,0.18)`,
+            display: 'flex', alignItems: 'center', gap: 10,
+          }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{
+                fontFamily: 'Manrope', fontSize: 10.5, color: CX_GOLD_DK,
+                letterSpacing: 0.6, textTransform: 'uppercase', fontWeight: 700,
+              }}>Applying from gold</div>
+              <div style={{
+                fontFamily: 'Manrope', fontWeight: 800, fontSize: 16,
+                color: CX_INK, marginTop: 2,
+              }}>
+                ₹{Math.round(goldApplied).toLocaleString('en-IN')}
+                <span style={{
+                  fontSize: 11, fontWeight: 500, color: CX_INK_SOFT, marginLeft: 6,
+                }}>· {goldGmApplied.toFixed(4)} g</span>
+              </div>
+            </div>
+            <div style={{
+              padding: '4px 10px', borderRadius: 999,
+              background: CX_GOLD_TINT, color: CX_GOLD_DK,
+              fontFamily: 'Manrope', fontSize: 10, fontWeight: 700, letterSpacing: 0.6,
+            }}>{coveredPct}% COVERED</div>
+          </div>
+
+          {/* Progress bar */}
+          <div style={{
+            height: 4, borderRadius: 4, background: 'rgba(116,92,0,0.12)', overflow: 'hidden',
+          }}>
+            <div style={{
+              height: '100%', width: `${coveredPct}%`,
+              background: CX_GOLD_DK, borderRadius: 4,
+              transition: 'width 220ms ease',
+            }}/>
+          </div>
+
+          {/* Split hint */}
+          <div style={{
+            fontFamily: 'Manrope', fontSize: 11.5, color: CX_INK_SOFT, lineHeight: 1.5,
+          }}>
+            {cashRemaining === 0 ? (
+              <>Your gold covers this order in full — no card needed.</>
+            ) : (
+              <>Remaining <strong style={{ color: CX_INK }}>₹{cashRemaining.toLocaleString('en-IN')}</strong> will be charged to the payment method below.</>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function Switch({ on, onToggle }) {
+  return (
+    <button type="button" onClick={onToggle} aria-pressed={on} style={{
+      width: 46, height: 26, borderRadius: 999, border: 'none', cursor: 'pointer',
+      background: on ? CX_GOLD_DK : 'rgb(200,197,192)',
+      position: 'relative', flexShrink: 0,
+      transition: 'background 160ms ease',
+    }}>
+      <span style={{
+        position: 'absolute', top: 3, left: on ? 23 : 3,
+        width: 20, height: 20, borderRadius: '50%', background: '#fff',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+        transition: 'left 160ms ease',
+      }}/>
+    </button>
   );
 }
 

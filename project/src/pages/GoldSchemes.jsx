@@ -1,158 +1,194 @@
 import React from 'react';
-// Gold Schemes — banner-first layout
-// Simple top bar · Active plan strip · Stack of banner cards, one per scheme
+// Gold Schemes — premium fintech hub.
+// Layout strategy:
+//   1. Active SIP summary card (only if user has one)
+//   2. Live MCX rate strip
+//   3. Quick actions (Buy Gold · Sell · Book My Gold)
+//   4. Scheme tiles grid
+//   5. Learning / trust footer
 const TGS = window.JEWEL_TOKENS;
 
+const GS_INK       = '#1E1B13';
+const GS_INK_SOFT  = '#6E655C';
+const GS_LINE      = 'rgba(47,52,48,0.10)';
+const GS_GOLD      = 'rgb(115,92,0)';
+const GS_GOLD_DK   = '#5A4700';
+const GS_GOLD_TINT = 'rgba(115,92,0,0.08)';
+const GS_ACCENT    = 'rgb(172,129,108)';
+const GS_ACCENT_DK = 'rgb(119,88,66)';
+
 function GoldSchemesPage({ go, state }) {
-  const { completed, monthly, nextAt } = state.loyalty;
+  const rate = state.goldRate?.buy || 11850;
+  const activeSip = (state.user.sips || []).find(s => s.status === 'active');
+  const loyaltyActive = state.loyalty?.registered;
 
   const schemes = [
     {
-      id: '10plus1',
-      name: '10+1 Gold Plan',
-      tagline: 'Pay 10 months, we gift the 11th',
-      detail: '₹2,000–₹1,00,000 monthly · 10 months',
-      badge: 'POPULAR',
-      active: true,
-      // Deepest tone — hero
-      bg: `linear-gradient(135deg, #5C3B2B 0%, #8A5B44 55%, #AF826D 100%)`,
-      accent: '#F2DDCB',
-      ink: '#FBEEE2',
+      id: 'jewel-sip', route: 'scheme-sip',
+      name: 'Jewel SIP', tag: 'FLAGSHIP',
+      tagline: 'Monthly 22K SIP',
+      detail: 'From ₹1,500/mo · 12–60 months',
+      bg: 'linear-gradient(135deg, #5C3B2B 0%, #8A5B44 55%, #AF826D 100%)',
+      ink: '#FBEEE2', accent: '#F2DDCB',
       Art: GiftArt,
     },
     {
-      id: 'sip',
-      name: 'Jewel SIP',
-      tagline: 'Accumulate 22k gold every month',
-      detail: 'Min ₹1,500/mo · 12–60 month tenure',
-      // Core brand — #AF826D forward
-      bg: `linear-gradient(135deg, #8A5B44 0%, #AF826D 100%)`,
-      accent: '#F6E4D2',
-      ink: '#FCEFE3',
+      id: '10plus1', route: 'loyalty',
+      name: '10+1 Gold Plan', tag: 'POPULAR',
+      tagline: 'Pay 10, get 11',
+      detail: '₹2K–₹1L monthly · 11th free',
+      bg: 'linear-gradient(135deg, #8A5B44 0%, #AF826D 100%)',
+      ink: '#FCEFE3', accent: '#F6E4D2',
       Art: CoinArt,
     },
     {
-      id: 'bridal',
-      name: 'Bridal Savings',
-      tagline: 'Plan the big day, save for it',
-      detail: '18–24 months · 5% making waiver',
-      // Warmer terracotta shift
-      bg: `linear-gradient(135deg, #AF826D 0%, #C89982 100%)`,
-      accent: '#FFF0E2',
-      ink: '#FFF3E8',
-      Art: SparkArt,
-    },
-    {
-      id: 'digital',
-      name: 'Digital Gold Vault',
-      tagline: 'Buy 24k gold by the gram',
-      detail: 'From ₹100 · Insured vault storage',
-      // Muted sandstone, slightly desaturated
-      bg: `linear-gradient(135deg, #74574A 0%, #9E7765 100%)`,
-      accent: '#EBD4C2',
-      ink: '#F6E2D0',
+      id: 'digital', route: 'wallet-gold',
+      name: 'Digital Gold', tag: '24K · 999.9',
+      tagline: 'Buy by the gram',
+      detail: 'From ₹100 · insured vault',
+      bg: 'linear-gradient(135deg, #74574A 0%, #9E7765 100%)',
+      ink: '#F6E2D0', accent: '#EBD4C2',
       Art: VaultArt,
     },
     {
-      id: 'flexi',
-      name: 'Flexi Gold',
-      tagline: 'Save on your own schedule',
-      detail: 'No fixed instalment · 0.5%/mo bonus',
-      // Lightest tone — pale café au lait
-      bg: `linear-gradient(135deg, #BE927C 0%, #D5AE99 100%)`,
-      accent: '#FFFAF3',
-      ink: '#FFF6EB',
-      Art: LeafArt,
+      id: 'bridal', route: null,
+      name: 'Bridal Savings', tag: 'COMING SOON',
+      tagline: 'Plan the big day',
+      detail: '18–24 months · 5% making waiver',
+      bg: 'linear-gradient(135deg, #AF826D 0%, #C89982 100%)',
+      ink: '#FFF3E8', accent: '#FFF0E2',
+      Art: SparkArt,
+      locked: true,
     },
   ];
 
   return (
     <>
-      {/* ── Simple top bar ──────────────────────── */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '14px 15px 10px', background: '#fff',
-        borderBottom: `1px solid ${TGS.line}`,
-      }}>
-        <button onClick={() => go('home')} aria-label="Back" style={gsSq}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M19 12H5M12 19l-7-7 7-7"/>
-          </svg>
-        </button>
-        <div style={{
-          fontFamily: `'Noto Serif', ${TGS.serif}`, fontSize: 20, color: '#000', letterSpacing: 0.2,
-        }}>Gold Schemes</div>
-        <button aria-label="Help" style={gsSq}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.9.4-1 1.2-1 1.7"/><circle cx="12" cy="17" r="0.6" fill="#000"/>
-          </svg>
-        </button>
-      </div>
+      <TopBar title="Gold Schemes" onBack={() => go('home')}/>
 
-      <div style={{ flex: 1, overflowY: 'auto', background: TGS.bg, padding: '16px 15px 28px' }}>
-
-        {/* ── Intro ──────────────────────────────── */}
-        <div style={{ marginBottom: 4 }}>
-          <div style={{
-            fontFamily: `'Noto Serif', ${TGS.serif}`, fontSize: 22, fontWeight: 700, color: '#1E1B13', lineHeight: 1.25,
-          }}>Save in gold, wear it forever.</div>
-          <div style={{
-            fontFamily: `'Manrope', ${TGS.sans}`, fontSize: 12.5, color: '#6E655C', marginTop: 6, lineHeight: 1.5,
-          }}>Pick a scheme that fits how you save.</div>
-        </div>
-
-        {/* ── Active plan compact strip ─────────── */}
-        <div
-          onClick={() => go('loyalty')}
-          style={{
-            marginTop: 16, background: '#fff', borderRadius: 12,
-            border: '1px solid rgba(115,92,0,0.2)',
-            padding: '10px 12px',
-            display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
+      <div style={{ flex: 1, overflowY: 'auto', background: TGS.bg, padding: '10px 16px 40px' }}>
+        {/* Active SIP summary (if any) */}
+        {activeSip && (
+          <button onClick={() => go('scheme-sip')} style={{
+            marginTop: 6, width: '100%', textAlign: 'left', cursor: 'pointer',
+            padding: '18px 18px 20px', borderRadius: 18,
+            background: 'linear-gradient(135deg, #2F1D11 0%, #5A3B23 48%, #8A5E3C 100%)',
+            color: '#F3D69B', position: 'relative', overflow: 'hidden',
+            border: 'none', boxShadow: '0 10px 28px rgba(58,36,24,0.28)',
           }}>
-          <div style={{
-            width: 8, height: 8, borderRadius: '50%', background: '#4C6944', flexShrink: 0,
-            boxShadow: '0 0 0 3px rgba(94,122,85,0.18)',
-          }}/>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{
-              fontFamily: `'Manrope', ${TGS.sans}`, fontSize: 10.5, color: '#6E655C',
-              letterSpacing: 0.6, textTransform: 'uppercase', fontWeight: 600,
-            }}>Your active plan</div>
-            <div style={{ fontFamily: `'Manrope', ${TGS.sans}`, fontSize: 12.5, color: '#1E1B13', fontWeight: 700, marginTop: 1 }}>
-              10+1 Gold Plan · {completed}/10 paid · Next {nextAt}
+            <svg width="150" height="150" viewBox="0 0 150 150"
+              style={{ position: 'absolute', top: -34, right: -28, opacity: 0.22, pointerEvents: 'none' }}>
+              <g stroke="#E9BE6F" strokeWidth="1" fill="none">
+                <circle cx="75" cy="75" r="30"/>
+                <circle cx="75" cy="75" r="48"/>
+                <circle cx="75" cy="75" r="66"/>
+              </g>
+            </svg>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                  fontFamily: `'Manrope', ${TGS.sans}`, fontSize: 10.5, letterSpacing: 2.4,
+                  color: '#E9BE6F', fontWeight: 700,
+                }}>◆ YOUR ACTIVE SIP</div>
+                <div style={{
+                  marginTop: 6,
+                  fontFamily: `'Noto Serif', ${TGS.serif}`, fontSize: 22, fontWeight: 700,
+                  lineHeight: 1.15,
+                }}>{activeSip.lockedGm.toFixed(3)} g locked in</div>
+                <div style={{
+                  marginTop: 4,
+                  fontFamily: `'Manrope', ${TGS.sans}`, fontSize: 12, color: 'rgba(243,214,155,0.82)',
+                }}>
+                  {activeSip.paidMonths.length}/{activeSip.tenure} instalments · next ₹{activeSip.monthly.toLocaleString('en-IN')} on {formatMonth(activeSip.nextDueAt)}
+                </div>
+              </div>
+              <div style={{
+                width: 38, height: 38, borderRadius: '50%',
+                background: 'rgba(243,214,155,0.18)', color: '#F3D69B',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 6 15 12 9 18"/>
+                </svg>
+              </div>
             </div>
-          </div>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgb(115,92,0)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="9 18 15 12 9 6"/>
-          </svg>
+
+            {/* Progress bar */}
+            <div style={{
+              marginTop: 14, height: 6, borderRadius: 6,
+              background: 'rgba(243,214,155,0.2)', overflow: 'hidden', position: 'relative',
+            }}>
+              <div style={{
+                position: 'absolute', left: 0, top: 0, bottom: 0,
+                width: `${Math.min(100, Math.round((activeSip.paidMonths.length / activeSip.tenure) * 100))}%`,
+                background: '#F3D69B', borderRadius: 6, transition: 'width 400ms ease',
+              }}/>
+            </div>
+          </button>
+        )}
+
+        {/* Rate strip */}
+        <div style={{ marginTop: activeSip ? 14 : 6 }}>
+          <RateStrip label="Today's buy rate · 24K" rate={rate} delta={state.goldRate?.delta24h} live/>
         </div>
 
-        {/* ── Banner stack ──────────────────────── */}
-        <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {schemes.map(s => (
-            <SchemeBanner key={s.id} s={s} onOpen={() => s.active ? go('loyalty') : null}/>
+        {/* Quick actions */}
+        <div style={{
+          marginTop: 14, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10,
+        }}>
+          <QuickAction icon={<IconPlus/>}  label="Buy Gold"    onClick={() => go('wallet-gold')}/>
+          <QuickAction icon={<IconMinus/>} label="Sell Back"   onClick={() => go('wallet-sell')}/>
+          <QuickAction icon={<IconCal/>}   label="Book Rate"   onClick={() => go('book')}/>
+        </div>
+
+        {/* Heading */}
+        <div style={{
+          marginTop: 22, marginBottom: 10,
+          fontFamily: `'Noto Serif', ${TGS.serif}`, fontSize: 20, fontWeight: 700, color: GS_INK,
+        }}>All schemes</div>
+
+        {/* Scheme tiles */}
+        <div style={{ display: 'grid', gap: 12 }}>
+          {schemes.map(sch => (
+            <SchemeTile
+              key={sch.id}
+              scheme={sch}
+              isYours={
+                (sch.id === 'jewel-sip' && !!activeSip) ||
+                (sch.id === '10plus1' && loyaltyActive)
+              }
+              onClick={() => sch.route ? go(sch.route) : null}
+            />
           ))}
         </div>
 
-        {/* ── Help footer (tiny) ────────────────── */}
+        {/* Trust footer */}
         <div style={{
-          marginTop: 22, padding: '14px 16px', borderRadius: 12,
-          background: '#fff', border: '1px dashed rgba(115,92,0,0.3)',
-          display: 'flex', alignItems: 'center', gap: 12,
+          marginTop: 22, padding: '14px 16px', borderRadius: 14,
+          background: '#fff', border: `1px solid ${GS_LINE}`,
+          display: 'flex', alignItems: 'flex-start', gap: 12,
         }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: '50%', background: 'rgba(115,92,0,0.12)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgb(115,92,0)',
-            flexShrink: 0,
+          <span style={{
+            width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+            background: 'rgba(76,105,68,0.12)', color: '#4C6944',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.95.35 1.88.66 2.78a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.3-1.24a2 2 0 0 1 2.11-.45c.9.31 1.83.53 2.78.66A2 2 0 0 1 22 16.92z"/>
+              <path d="M12 3l7.5 3v6c0 4.5-3.2 8.3-7.5 9.5C7.7 20.3 4.5 16.5 4.5 12V6L12 3Z"/>
+              <path d="M9.5 12.2l2 2 3.2-3.5"/>
             </svg>
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontFamily: `'Manrope', ${TGS.sans}`, fontSize: 12.5, color: '#1E1B13', fontWeight: 700 }}>Need help picking?</div>
-            <div style={{ fontFamily: `'Manrope', ${TGS.sans}`, fontSize: 11, color: '#6E655C', marginTop: 1 }}>Call our advisors · Mon–Sat, 10 am–7 pm</div>
+          </span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{
+              fontFamily: `'Noto Serif', ${TGS.serif}`, fontSize: 13, fontWeight: 700, color: GS_INK,
+            }}>Your gold, protected</div>
+            <div style={{
+              marginTop: 2,
+              fontFamily: `'Manrope', ${TGS.sans}`, fontSize: 11, color: GS_INK_SOFT, lineHeight: 1.5,
+            }}>
+              BIS-hallmarked jewellery at redemption · insured vault storage · PAN-verified per IT rules
+              above ₹2,00,000 · transparent daily rates from MCX.
+            </div>
           </div>
         </div>
       </div>
@@ -160,169 +196,161 @@ function GoldSchemesPage({ go, state }) {
   );
 }
 
-// ── Scheme banner ──────────────────────────────────────
-function SchemeBanner({ s, onOpen }) {
+function QuickAction({ icon, label, onClick }) {
   return (
-    <div
-      onClick={onOpen}
-      style={{
-        position: 'relative', overflow: 'hidden',
-        borderRadius: 18, height: 168,
-        background: s.bg,
-        boxShadow: '0 6px 18px rgba(62,42,26,0.18)',
-        cursor: 'pointer',
-      }}>
-      {/* Decorative art on the right */}
-      <div style={{ position: 'absolute', right: -6, top: -8, bottom: -8, width: 160, opacity: 0.9 }}>
-        <s.Art accent={s.accent}/>
-      </div>
-
-      {/* Subtle vignette so text stays legible */}
-      <div style={{
-        position: 'absolute', inset: 0,
-        background: 'linear-gradient(90deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0) 65%)',
-      }}/>
-
-      {/* Content */}
-      <div style={{
-        position: 'relative', zIndex: 1, height: '100%',
-        padding: '16px 16px 14px', display: 'flex', flexDirection: 'column',
-      }}>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {s.badge && (
-            <span style={{
-              padding: '3px 8px', borderRadius: 4, background: s.accent, color: '#1E1B13',
-              fontFamily: `'Manrope', ${TGS.sans}`, fontSize: 9, fontWeight: 700, letterSpacing: 0.8,
-            }}>{s.badge}</span>
-          )}
-          {s.active && (
-            <span style={{
-              padding: '3px 8px', borderRadius: 4,
-              background: 'rgba(255,255,255,0.18)', color: '#fff',
-              border: '1px solid rgba(255,255,255,0.3)',
-              fontFamily: `'Manrope', ${TGS.sans}`, fontSize: 9, fontWeight: 700, letterSpacing: 0.8,
-            }}>ACTIVE</span>
-          )}
-        </div>
-
-        <div style={{ marginTop: 10, maxWidth: 'calc(100% - 110px)' }}>
-          <div style={{
-            fontFamily: `'Noto Serif', ${TGS.serif}`, fontSize: 22, fontWeight: 700,
-            color: '#fff', lineHeight: 1.2,
-          }}>{s.name}</div>
-          <div style={{
-            fontFamily: `'Manrope', ${TGS.sans}`, fontSize: 12.5, fontWeight: 500,
-            color: s.ink, marginTop: 4, lineHeight: 1.4,
-          }}>{s.tagline}</div>
-        </div>
-
-        <div style={{ flex: 1 }}/>
-
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-          <div style={{
-            fontFamily: `'Manrope', ${TGS.sans}`, fontSize: 10.5,
-            color: 'rgba(255,255,255,0.85)', letterSpacing: 0.3,
-          }}>{s.detail}</div>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            padding: '7px 12px', borderRadius: 50,
-            background: '#fff', color: '#1E1B13',
-            fontFamily: `'Manrope', ${TGS.sans}`, fontSize: 10.5, fontWeight: 700,
-            letterSpacing: 0.8, textTransform: 'uppercase',
-          }}>
-            {s.active ? 'View' : 'Enroll'}
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="9 18 15 12 9 6"/>
-            </svg>
-          </div>
-        </div>
-      </div>
-    </div>
+    <button onClick={onClick} style={{
+      padding: '14px 10px 12px', borderRadius: 14, cursor: 'pointer',
+      background: '#fff', border: `1px solid ${GS_LINE}`,
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+      boxShadow: '0 2px 8px rgba(30,27,19,0.03)',
+    }}>
+      <span style={{
+        width: 32, height: 32, borderRadius: 8,
+        background: GS_GOLD_TINT, color: GS_GOLD_DK,
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      }}>{icon}</span>
+      <span style={{
+        fontFamily: `'Manrope', ${TGS.sans}`, fontSize: 11, fontWeight: 700, color: GS_INK,
+        letterSpacing: 0.3,
+      }}>{label}</span>
+    </button>
   );
 }
 
-// ── Decorative SVG art for each banner ─────────────────
+function SchemeTile({ scheme, isYours, onClick }) {
+  const { Art } = scheme;
+  return (
+    <button onClick={onClick} disabled={scheme.locked} style={{
+      position: 'relative', width: '100%', textAlign: 'left',
+      padding: '18px 18px 18px', borderRadius: 18, overflow: 'hidden',
+      background: scheme.bg, color: scheme.ink,
+      border: 'none', cursor: scheme.locked ? 'not-allowed' : 'pointer',
+      opacity: scheme.locked ? 0.75 : 1,
+      boxShadow: '0 8px 24px rgba(58,36,24,0.2)',
+      minHeight: 140,
+      display: 'flex', alignItems: 'center', gap: 12,
+    }}>
+      <div style={{ position: 'absolute', right: -10, bottom: -8, opacity: 0.55, pointerEvents: 'none' }}>
+        <Art accent={scheme.accent}/>
+      </div>
+
+      <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{
+            display: 'inline-flex',
+            padding: '3px 8px', borderRadius: 999,
+            background: 'rgba(255,255,255,0.18)',
+            border: '1px solid rgba(255,255,255,0.3)',
+            fontFamily: `'Manrope', ${TGS.sans}`, fontSize: 9.5, fontWeight: 700, letterSpacing: 0.8,
+            color: scheme.accent,
+          }}>{scheme.tag}</span>
+          {isYours && (
+            <span style={{
+              display: 'inline-flex',
+              padding: '3px 8px', borderRadius: 999,
+              background: 'rgba(168,225,160,0.22)',
+              border: '1px solid rgba(168,225,160,0.5)',
+              fontFamily: `'Manrope', ${TGS.sans}`, fontSize: 9.5, fontWeight: 700, letterSpacing: 0.8,
+              color: '#E4F6DF',
+            }}>YOURS</span>
+          )}
+        </div>
+        <div style={{
+          marginTop: 10,
+          fontFamily: `'Noto Serif', ${TGS.serif}`, fontSize: 22, fontWeight: 700, lineHeight: 1.15,
+        }}>{scheme.name}</div>
+        <div style={{
+          marginTop: 4,
+          fontFamily: `'Manrope', ${TGS.sans}`, fontSize: 12.5, fontWeight: 600,
+          color: scheme.accent,
+        }}>{scheme.tagline}</div>
+        <div style={{
+          marginTop: 6,
+          fontFamily: `'Manrope', ${TGS.sans}`, fontSize: 11, color: scheme.accent, opacity: 0.85,
+        }}>{scheme.detail}</div>
+      </div>
+
+      {!scheme.locked && (
+        <div style={{
+          position: 'relative',
+          width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
+          background: 'rgba(255,255,255,0.18)', color: scheme.ink,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 6 15 12 9 18"/>
+          </svg>
+        </div>
+      )}
+    </button>
+  );
+}
+
+/* ── tiny inline icons + scheme art ─────────────────────── */
+function IconPlus() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M12 5v14M5 12h14"/>
+    </svg>
+  );
+}
+function IconMinus() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M5 12h14"/>
+    </svg>
+  );
+}
+function IconCal() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3.5" y="5" width="17" height="15" rx="2"/>
+      <path d="M3.5 10h17M8 3v4M16 3v4"/>
+    </svg>
+  );
+}
+
 function GiftArt({ accent }) {
   return (
-    <svg viewBox="0 0 160 184" preserveAspectRatio="xMidYMid meet" style={{ width: '100%', height: '100%' }}>
-      {/* big 1 with + at base */}
-      <text x="92" y="160" fontFamily="'Noto Serif', serif" fontSize="180" fontWeight="700"
-        fill="none" stroke={accent} strokeWidth="2" opacity="0.85">1</text>
-      <text x="50" y="120" fontFamily="'Noto Serif', serif" fontSize="40" fontWeight="700" fill={accent} opacity="0.75">+</text>
-      {/* sparkles */}
-      <g fill={accent} opacity="0.8">
-        <path d="M140,40 l3,6 l6,3 l-6,3 l-3,6 l-3,-6 l-6,-3 l6,-3 z"/>
-        <circle cx="122" cy="30" r="1.6"/>
-        <circle cx="150" cy="100" r="1.6"/>
-      </g>
+    <svg width="150" height="140" viewBox="0 0 150 140" fill="none" stroke={accent} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="35" y="55" width="90" height="70" rx="6"/>
+      <path d="M30 65h100M80 55v70"/>
+      <path d="M80 55c-18-28-50-28-50 0 0 18 28 18 50 0zM80 55c18-28 50-28 50 0 0 18-28 18-50 0z"/>
     </svg>
   );
 }
 function CoinArt({ accent }) {
   return (
-    <svg viewBox="0 0 160 184" preserveAspectRatio="xMidYMid meet" style={{ width: '100%', height: '100%' }}>
-      {/* stacked coins */}
-      <g fill="none" stroke={accent} strokeWidth="2" opacity="0.9">
-        <ellipse cx="100" cy="148" rx="44" ry="10"/>
-        <ellipse cx="100" cy="130" rx="44" ry="10"/>
-        <ellipse cx="100" cy="112" rx="44" ry="10"/>
-        <path d="M56,112 v36 M144,112 v36"/>
-        <circle cx="104" cy="62" r="30"/>
-        <path d="M104,46 v32 M92,62 h24"/>
-      </g>
-    </svg>
-  );
-}
-function SparkArt({ accent }) {
-  return (
-    <svg viewBox="0 0 160 184" preserveAspectRatio="xMidYMid meet" style={{ width: '100%', height: '100%' }}>
-      <g fill="none" stroke={accent} strokeWidth="2" opacity="0.9">
-        {/* diamond */}
-        <path d="M100,40 l28,22 l-28,58 l-28,-58 z"/>
-        <path d="M72,62 h56 M86,62 l14,58 M114,62 l-14,58"/>
-      </g>
-      <g fill={accent} opacity="0.8">
-        <path d="M140,30 l2.5,5 l5,2.5 l-5,2.5 l-2.5,5 l-2.5,-5 l-5,-2.5 l5,-2.5 z"/>
-        <path d="M50,130 l2,4 l4,2 l-4,2 l-2,4 l-2,-4 l-4,-2 l4,-2 z"/>
-      </g>
+    <svg width="140" height="130" viewBox="0 0 140 130" fill="none" stroke={accent} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+      <ellipse cx="70" cy="60" rx="42" ry="14"/>
+      <path d="M28 60v22c0 8 20 14 42 14s42-6 42-14V60"/>
+      <path d="M28 82v22c0 8 20 14 42 14s42-6 42-14V82"/>
     </svg>
   );
 }
 function VaultArt({ accent }) {
   return (
-    <svg viewBox="0 0 160 184" preserveAspectRatio="xMidYMid meet" style={{ width: '100%', height: '100%' }}>
-      <g fill="none" stroke={accent} strokeWidth="2" opacity="0.9">
-        <rect x="52" y="44" width="90" height="96" rx="6"/>
-        <circle cx="104" cy="92" r="22"/>
-        <circle cx="104" cy="92" r="6"/>
-        {/* hands */}
-        <path d="M104,70 l10,-10 M104,70 l-10,-10 M104,114 l10,10 M104,114 l-10,10"/>
-        {/* bolts */}
-        <circle cx="60" cy="52" r="1.5" fill={accent}/>
-        <circle cx="134" cy="52" r="1.5" fill={accent}/>
-        <circle cx="60" cy="132" r="1.5" fill={accent}/>
-        <circle cx="134" cy="132" r="1.5" fill={accent}/>
-      </g>
+    <svg width="140" height="130" viewBox="0 0 140 130" fill="none" stroke={accent} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="25" y="25" width="90" height="85" rx="8"/>
+      <circle cx="70" cy="68" r="22"/>
+      <path d="M70 50v10M70 76v10M54 68h10M80 68h10"/>
+      <path d="M115 55v26"/>
     </svg>
   );
 }
-function LeafArt({ accent }) {
+function SparkArt({ accent }) {
   return (
-    <svg viewBox="0 0 160 184" preserveAspectRatio="xMidYMid meet" style={{ width: '100%', height: '100%' }}>
-      <g fill="none" stroke={accent} strokeWidth="2" opacity="0.9">
-        <path d="M60,150 q50,-60 90,-100"/>
-        <path d="M80,128 q18,-4 30,-22 q-22,-4 -30,22z"/>
-        <path d="M100,108 q18,-4 30,-22 q-22,-4 -30,22z"/>
-        <path d="M120,88 q18,-4 30,-22 q-22,-4 -30,22z"/>
-      </g>
+    <svg width="140" height="130" viewBox="0 0 140 130" fill="none" stroke={accent} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M70 28l6 20 20 6-20 6-6 20-6-20-20-6 20-6z"/>
+      <path d="M110 78l3 10 10 3-10 3-3 10-3-10-10-3 10-3z"/>
+      <path d="M30 92l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/>
     </svg>
   );
 }
 
-const gsSq = {
-  width: 40, height: 40, borderRadius: 12, background: 'rgba(255,248,239,0.7)',
-  border: '1px solid rgba(115,92,0,0.12)', cursor: 'pointer',
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-};
+function formatMonth(iso) {
+  try { return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }); }
+  catch { return ''; }
+}
 
 window.GoldSchemesPage = GoldSchemesPage;

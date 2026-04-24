@@ -8,6 +8,7 @@ import './tokens.js';
 import './icons.jsx';
 import './shell.jsx';
 import './atoms.jsx';
+import './walletAtoms.jsx';
 
 // Pages (each assigns window.XxxPage)
 import './pages/Login.jsx';
@@ -36,6 +37,12 @@ import './pages/Checkout.jsx';
 import './pages/TodaysRate.jsx';
 import './pages/Categories.jsx';
 import './pages/CustomiseJewel.jsx';
+import './pages/WalletHub.jsx';
+import './pages/DigitalGold.jsx';
+import './pages/Liquidation.jsx';
+import './pages/VoucherWallet.jsx';
+import './pages/BankAccounts.jsx';
+import './pages/JewelSip.jsx';
 
 // Root router (defines window.App)
 import './App.jsx';

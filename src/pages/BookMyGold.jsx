@@ -19,9 +19,10 @@ function BookMyGoldPage({ go, state }) {
 
         {/* ── Segmented toggle ─────────────────────── */}
         <div style={{
-          display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4,
-          background: 'rgba(115,92,0,0.08)',
-          padding: 4, borderRadius: 14,
+          display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6,
+          background: '#F1EADC',
+          border: `1px solid ${BMG.line}`,
+          padding: 4, borderRadius: 12,
         }}>
           {[
             { k: 'book',   label: 'Book My Gold' },
@@ -33,13 +34,14 @@ function BookMyGoldPage({ go, state }) {
                 key={t.k}
                 onClick={() => setTab(t.k)}
                 style={{
-                  height: 40, border: 'none', cursor: 'pointer',
-                  background: active ? '#1E1B13' : 'transparent',
-                  color:      active ? '#FFF1C9' : '#6E655C',
-                  borderRadius: 10,
-                  fontFamily: `'Manrope', ${BMG.sans}`, fontSize: 12.5, fontWeight: 700,
-                  letterSpacing: 0.5,
-                  transition: 'background 180ms ease, color 180ms ease',
+                  padding: '10px 0', borderRadius: 9, cursor: 'pointer',
+                  background: active ? '#fff' : 'transparent',
+                  color: active ? '#5A4700' : '#6E655C',
+                  border: active ? '1px solid rgb(115,92,0)' : '1px solid transparent',
+                  boxShadow: active ? '0 1px 4px rgba(115,92,0,0.16)' : 'none',
+                  fontFamily: `'Manrope', ${BMG.sans}`, fontSize: 12.5,
+                  fontWeight: 700, letterSpacing: 0.4,
+                  transition: 'all 180ms ease',
                 }}>
                 {t.label}
               </button>
@@ -60,32 +62,32 @@ function BookTab({ go, onLock }) {
       {/* ── Hero rate card ──────────────────────── */}
       <div style={{
         marginTop: 16, borderRadius: 18, overflow: 'hidden',
-        background: 'linear-gradient(135deg, #3E2E23 0%, #6B4A2E 60%, #9B6B28 100%)',
+        background: 'linear-gradient(135deg, #6B4638 0%, #8E6452 52%, #AF826D 100%)',
         position: 'relative', minHeight: 140,
-        boxShadow: '0 8px 20px rgba(62,42,26,0.2)',
+        boxShadow: '0 8px 22px rgba(119,88,66,0.28)',
       }}>
-        {/* decorative glow */}
+        {/* decorative glow — warm cream on top of #AF826D family */}
         <div style={{
           position: 'absolute', right: -40, top: -40, width: 180, height: 180,
-          borderRadius: '50%', background: 'radial-gradient(circle, rgba(227,178,74,0.4), transparent 70%)',
+          borderRadius: '50%', background: 'radial-gradient(circle, rgba(243,221,203,0.45), transparent 70%)',
         }}/>
-        <div style={{ position: 'relative', padding: '18px 18px 16px', color: '#fff' }}>
+        <div style={{ position: 'relative', padding: '18px 18px 16px', color: '#FCEFE3' }}>
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
-            background: 'rgba(255,255,255,0.14)',
-            border: '1px solid rgba(255,255,255,0.22)',
+            background: 'rgba(252,239,227,0.16)',
+            border: '1px solid rgba(252,239,227,0.28)',
             padding: '4px 10px', borderRadius: 50,
           }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#7CC47E', boxShadow: '0 0 0 3px rgba(124,196,126,0.25)' }}/>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#A8E1A0', boxShadow: '0 0 0 3px rgba(168,225,160,0.25)' }}/>
             <span style={{ fontFamily: `'Manrope', ${BMG.sans}`, fontSize: 10, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase' }}>LIVE RATE · 22 APR, 10:24 AM</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, marginTop: 14 }}>
             <div>
-              <div style={{ fontFamily: `'Manrope', ${BMG.sans}`, fontSize: 10.5, color: 'rgba(255,255,255,0.75)', letterSpacing: 0.5, textTransform: 'uppercase' }}>22KT Gold</div>
-              <div style={{ fontFamily: `'Noto Serif', ${BMG.serif}`, fontSize: 28, fontWeight: 700, letterSpacing: 0.2, marginTop: 2 }}>₹11,400<span style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.75)' }}> /gm</span></div>
+              <div style={{ fontFamily: `'Manrope', ${BMG.sans}`, fontSize: 10.5, color: 'rgba(252,239,227,0.78)', letterSpacing: 0.5, textTransform: 'uppercase' }}>22KT Gold</div>
+              <div style={{ fontFamily: `'Noto Serif', ${BMG.serif}`, fontSize: 28, fontWeight: 700, letterSpacing: 0.2, marginTop: 2 }}>₹11,400<span style={{ fontSize: 13, fontWeight: 500, color: 'rgba(252,239,227,0.78)' }}> /gm</span></div>
             </div>
-            <div style={{ borderLeft: '1px solid rgba(255,255,255,0.25)', paddingLeft: 16, marginBottom: 4 }}>
-              <div style={{ fontFamily: `'Manrope', ${BMG.sans}`, fontSize: 10.5, color: 'rgba(255,255,255,0.75)', letterSpacing: 0.5, textTransform: 'uppercase' }}>24KT</div>
+            <div style={{ borderLeft: '1px solid rgba(252,239,227,0.28)', paddingLeft: 16, marginBottom: 4 }}>
+              <div style={{ fontFamily: `'Manrope', ${BMG.sans}`, fontSize: 10.5, color: 'rgba(252,239,227,0.78)', letterSpacing: 0.5, textTransform: 'uppercase' }}>24KT</div>
               <div style={{ fontFamily: `'Manrope', ${BMG.sans}`, fontSize: 16, fontWeight: 700, marginTop: 2 }}>₹12,450</div>
             </div>
           </div>
@@ -93,10 +95,10 @@ function BookTab({ go, onLock }) {
             onClick={onLock}
             style={{
               marginTop: 14, width: '100%', height: 44, border: 'none', cursor: 'pointer',
-              background: '#E3B24A', color: '#1E1B13',
+              background: '#F3DDCB', color: '#3E2A1E',
               fontFamily: `'Manrope', ${BMG.sans}`, fontSize: 12.5, fontWeight: 700,
               letterSpacing: 0.8, textTransform: 'uppercase', borderRadius: 10,
-              boxShadow: '0 4px 12px rgba(227,178,74,0.35)',
+              boxShadow: '0 4px 12px rgba(107,70,56,0.35)',
             }}>
             Lock This Rate
           </button>

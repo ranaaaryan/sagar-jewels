@@ -12,6 +12,53 @@ const SEED = {
     memberSince: 2021,
     initials: 'SS',
     walletBalance: 12450,             // ₹ available in wallet
+    digitalGold: {
+      weightGm: 4.820,                // total owned 24K grams (3dp display)
+      invested: 52800,                // cumulative ₹ spent across all lots
+      lots: [
+        { id: 'lot_3', date: '2025-11-02T09:00:00.000Z', gm: 1.200, pricePerGm: 11200, paid: 13440 },
+        { id: 'lot_2', date: '2025-09-18T14:12:00.000Z', gm: 2.000, pricePerGm: 10900, paid: 21800 },
+        { id: 'lot_1', date: '2025-07-21T11:05:00.000Z', gm: 1.620, pricePerGm: 10850, paid: 17577 },
+      ],
+    },
+    bankAccounts: [
+      { id: 'ba_1', type: 'bank', label: 'HDFC Bank', masked: 'XXXX XXXX 4521', ifsc: 'HDFC0001234', primary: true,  verified: true },
+      { id: 'ba_2', type: 'upi',  label: 'PhonePe',   masked: 'sakshi@ybl',                          primary: false, verified: true },
+    ],
+    // PAN card image — separate from user.kyc. IT rules mandate a PAN image
+    // for bullion/gold transactions > ₹2,00,000. Null until uploaded.
+    panImage: null,
+    // SIP enrollments (Jewel SIP etc.). User can hold multiple concurrent SIPs.
+    sips: [
+      {
+        id: 'sip_2025_04',
+        schemeId: 'jewel-sip',
+        schemeName: 'Jewel SIP',
+        monthly: 5000,
+        tenure: 24,                          // months
+        startedAt: '2025-04-15T10:00:00.000Z',
+        nextDueAt:  '2026-05-15T10:00:00.000Z',
+        status: 'active',                    // 'active' | 'matured' | 'defaulted'
+        autopay: true,
+        paidMonths: [
+          { date: '2025-04-15T10:00:00.000Z', amount: 5000, gramsAccrued: 0.4484, pricePerGm: 11150 },
+          { date: '2025-05-15T10:00:00.000Z', amount: 5000, gramsAccrued: 0.4425, pricePerGm: 11300 },
+          { date: '2025-06-15T10:00:00.000Z', amount: 5000, gramsAccrued: 0.4425, pricePerGm: 11300 },
+          { date: '2025-07-15T10:00:00.000Z', amount: 5000, gramsAccrued: 0.4535, pricePerGm: 11025 },
+          { date: '2025-08-15T10:00:00.000Z', amount: 5000, gramsAccrued: 0.4505, pricePerGm: 11100 },
+          { date: '2025-09-15T10:00:00.000Z', amount: 5000, gramsAccrued: 0.4505, pricePerGm: 11100 },
+          { date: '2025-10-15T10:00:00.000Z', amount: 5000, gramsAccrued: 0.4425, pricePerGm: 11300 },
+          { date: '2025-11-15T10:00:00.000Z', amount: 5000, gramsAccrued: 0.4367, pricePerGm: 11450 },
+          { date: '2025-12-15T10:00:00.000Z', amount: 5000, gramsAccrued: 0.4367, pricePerGm: 11450 },
+          { date: '2026-01-15T10:00:00.000Z', amount: 5000, gramsAccrued: 0.4310, pricePerGm: 11600 },
+          { date: '2026-02-15T10:00:00.000Z', amount: 5000, gramsAccrued: 0.4274, pricePerGm: 11700 },
+          { date: '2026-03-15T10:00:00.000Z', amount: 5000, gramsAccrued: 0.4237, pricePerGm: 11800 },
+          { date: '2026-04-15T10:00:00.000Z', amount: 5000, gramsAccrued: 0.4219, pricePerGm: 11850 },
+        ],
+        // Convenience field — sum of gramsAccrued. Displayed in dashboard hero.
+        lockedGm: 5.7077,
+      },
+    ],
     kyc: {
       status: 'verified',              // 'verified' · any other value hides the section
       pan: 'ABCDE1234F',
@@ -77,6 +124,14 @@ const SEED = {
   ],
   giftWrap: true,
   cartCoupon: { code: 'SAGAR10', value: 4890 },
+  goldRate: {                         // live MCX 24K feed (mock; overwritten by Digital Gold ticker)
+    buy:  11850,                      // user buys gold at this rate
+    sell: 11368,                      // user sells back at this rate (buy vs sell spread ≈ 4%)
+    delta24h: 89,                     // ₹ change vs 24 hours ago
+    updatedAt: '2026-04-24T09:30:00.000Z',
+  },
+  voucherWallet: [],                  // residual voucher balances from checkout overflow
+  cartPayment: { useDigitalGold: false },
 };
 
 function App() {
@@ -84,12 +139,22 @@ function App() {
     try {
       const saved = JSON.parse(localStorage.getItem('jewel_state_v3'));
       if (!saved) return SEED;
-      // Backfill any new fields added to SEED (e.g., user.kyc) so existing
-      // persisted state picks them up without the user having to clear storage.
+      // Backfill new SEED fields (top-level and nested) so existing persisted
+      // state picks them up without the user having to clear storage.
       return {
         ...SEED,
         ...saved,
-        user: { ...SEED.user, ...(saved.user || {}) },
+        goldRate:      { ...SEED.goldRate,    ...(saved.goldRate    || {}) },
+        cartPayment:   { ...SEED.cartPayment, ...(saved.cartPayment || {}) },
+        voucherWallet: saved.voucherWallet ?? SEED.voucherWallet,
+        user: {
+          ...SEED.user,
+          ...(saved.user || {}),
+          digitalGold:  { ...SEED.user.digitalGold, ...(saved.user?.digitalGold || {}) },
+          bankAccounts: saved.user?.bankAccounts ?? SEED.user.bankAccounts,
+          sips:         saved.user?.sips         ?? SEED.user.sips,
+          panImage:     saved.user?.panImage     ?? SEED.user.panImage,
+        },
       };
     } catch { return SEED; }
   })();
@@ -144,6 +209,12 @@ function App() {
     case 'search':     content = <SearchPage    {...pageProps}/>; break;
     case 'rate':       content = <TodaysRatePage {...pageProps}/>; break;
     case 'customise':  content = <CustomiseJewelPage {...pageProps}/>; break;
+    case 'wallet':           content = <WalletHubPage      {...pageProps}/>; break;
+    case 'wallet-gold':      content = <DigitalGoldPage    {...pageProps}/>; break;
+    case 'wallet-sell':      content = <LiquidationPage    {...pageProps}/>; break;
+    case 'wallet-vouchers':  content = <VoucherWalletPage  {...pageProps}/>; break;
+    case 'wallet-banks':     content = <BankAccountsPage   {...pageProps}/>; break;
+    case 'scheme-sip':       content = <JewelSipPage       {...pageProps}/>; break;
     default:           content = <HomePage      {...pageProps}/>;
   }
 
