@@ -30,11 +30,41 @@ function resolveCouponValue(code) {
   return typeof v === 'number' ? v : 2000;
 }
 
+// Pickup-eligible Sagar stores. `pincode` is used to bias ordering toward the
+// user's region (matched on the leading digit, which corresponds to PIN region
+// in India: 1 Delhi/NCR, 4 Mumbai, 5 Bengaluru/Hyderabad, etc.).
+const PICKUP_STORES = [
+  { id: 'p1', name: 'Sagar Jewellers · Indiranagar',     area: 'Indiranagar, Bengaluru',         pincode: '560038', km: 2.4,  hours: '11:00 – 20:30' },
+  { id: 'p2', name: 'Sagar Jewellers · UB City Boutique',area: 'Shanthala Nagar, Bengaluru',     pincode: '560001', km: 6.1,  hours: '11:00 – 21:00' },
+  { id: 'p3', name: 'Sagar Jewellers · Jayanagar',       area: 'Jayanagar, Bengaluru',           pincode: '560011', km: 9.8,  hours: '10:30 – 20:30' },
+  { id: 'p4', name: 'Sagar Jewellers · Whitefield',      area: 'Forum Shantiniketan, Bengaluru', pincode: '560066', km: 14.2, hours: '11:00 – 22:00' },
+  { id: 'p5', name: 'Sagar Jewellers · DLF Emporio',     area: 'Vasant Kunj, New Delhi',         pincode: '110070', km: 18.5, hours: '11:00 – 20:00' },
+  { id: 'p6', name: 'Sagar Jewellers · Bandra Boutique', area: 'Bandra West, Mumbai',            pincode: '400050', km: 22.1, hours: '11:00 – 21:00' },
+];
+
+function rankedPickupStores(userPincode) {
+  const region = (userPincode || '')[0];
+  const list = [...PICKUP_STORES];
+  if (!region) return list.sort((a, b) => a.km - b.km);
+  return list.sort((a, b) => {
+    const aSame = a.pincode[0] === region;
+    const bSame = b.pincode[0] === region;
+    if (aSame && !bSame) return -1;
+    if (!aSame && bSame) return 1;
+    return a.km - b.km;
+  });
+}
+
+const ADVANCE_PCT_CHIPS = [25, 50, 75];
+
 function CheckoutPage({ go, state, setState }) {
   const defaultAddr = (state.addresses.find(a => a.isDefault) || state.addresses[0]);
   const [addressId, setAddressId] = React.useState(defaultAddr?.id);
   const [payMethod, setPayMethod] = React.useState('card');
+  const [advancePct, setAdvancePct] = React.useState(50);
   const [fulfillment, setFulfillment] = React.useState('delivery');
+  const [pickupStoreId, setPickupStoreId] = React.useState(null);
+  const [pickupListOpen, setPickupListOpen] = React.useState(false);
   const [billingSame, setBillingSame] = React.useState(true);
   const [whatsappUpdates, setWhatsappUpdates] = React.useState(true);
   const [placed, setPlaced] = React.useState(false);
@@ -68,6 +98,25 @@ function CheckoutPage({ go, state, setState }) {
   const [pendingPlace, setPendingPlace] = React.useState(false);
 
   const addr = state.addresses.find(a => a.id === addressId) || state.addresses[0];
+
+  // Pickup stores ranked by user's pincode region; default selection is nearest.
+  const sortedPickupStores = React.useMemo(
+    () => rankedPickupStores(addr?.pincode),
+    [addr?.pincode]
+  );
+  React.useEffect(() => {
+    if (!pickupStoreId && sortedPickupStores[0]) setPickupStoreId(sortedPickupStores[0].id);
+  }, [sortedPickupStores, pickupStoreId]);
+  const selectedPickupStore =
+    sortedPickupStores.find(s => s.id === pickupStoreId) || sortedPickupStores[0];
+
+  // Advance-pay split: customer pays a chosen % now and the rest on receipt.
+  // Splits whatever is otherwise payable now (post digital-gold credit).
+  const baseDueNow      = useGold ? cashRemaining : total;
+  const isAdvance       = payMethod === 'advance' && !fullyCoveredByGold && baseDueNow > 0;
+  const advanceAmount   = isAdvance ? Math.round(baseDueNow * advancePct / 100) : 0;
+  const dueOnReceipt    = isAdvance ? Math.max(0, baseDueNow - advanceAmount) : 0;
+  const finalPayNow     = isAdvance ? advanceAmount : baseDueNow;
 
   // ── Coupon apply with residual-to-wallet logic ─────────
   function applyCoupon(raw) {
@@ -283,6 +332,43 @@ function CheckoutPage({ go, state, setState }) {
               <DualLogo/>
             </div>
           </PayCard>
+
+          {/* Advance Pay — split between now and on receipt */}
+          <PayCard selected={payMethod === 'advance'} onClick={() => setPayMethod('advance')}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%' }}>
+              <div style={{
+                width: 42, height: 42, borderRadius: 10, flexShrink: 0,
+                background: CX_CREAM, color: CX_ACCENT_DK,
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="19" y1="5" x2="5" y2="19"/>
+                  <circle cx="6.5" cy="6.5" r="2.5"/>
+                  <circle cx="17.5" cy="17.5" r="2.5"/>
+                </svg>
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                  fontFamily: 'Manrope', fontWeight: 700, fontSize: 16, color: CX_INK,
+                }}>Advance Pay</div>
+                <div style={{
+                  fontFamily: 'Manrope', fontSize: 12, color: CX_INK_SOFT, marginTop: 2,
+                }}>Pay part now, settle the rest on receipt</div>
+              </div>
+            </div>
+          </PayCard>
+
+          {payMethod === 'advance' && (
+            <AdvancePayPanel
+              total={baseDueNow}
+              pct={advancePct}
+              setPct={setAdvancePct}
+              advanceAmount={advanceAmount}
+              dueOnReceipt={dueOnReceipt}
+              fulfillment={fulfillment}
+            />
+          )}
         </div>
         </>
         )}
@@ -326,6 +412,17 @@ function CheckoutPage({ go, state, setState }) {
               }}>FREE</div>
             </div>
           </PayCard>
+
+          {fulfillment === 'pickup' && selectedPickupStore && (
+            <StorePickupDropdown
+              stores={sortedPickupStores}
+              selected={selectedPickupStore}
+              onSelect={id => { setPickupStoreId(id); setPickupListOpen(false); }}
+              open={pickupListOpen}
+              onToggle={() => setPickupListOpen(o => !o)}
+              userPincode={addr?.pincode}
+            />
+          )}
         </div>
 
         {/* ─── Gift Voucher ─── */}
@@ -390,9 +487,24 @@ function CheckoutPage({ go, state, setState }) {
               valueColor={CX_GOLD_DK}
             />
           )}
+          {isAdvance && (
+            <>
+              <SumRow
+                label="Order Total"
+                value={`₹${baseDueNow.toLocaleString('en-IN', {minimumFractionDigits: 2})}`}
+              />
+              <SumRow
+                label={`Due on ${fulfillment === 'pickup' ? 'pickup' : 'delivery'}`}
+                value={`₹${dueOnReceipt.toLocaleString('en-IN')}`}
+                valueColor={CX_INK_SOFT}
+              />
+            </>
+          )}
           <div style={{ height: 1, background: CX_LINE, margin: '2px 0' }}/>
-          <SumRow label={useGold && goldApplied > 0 ? 'Payable now' : 'Total'}
-                  value={`₹${(useGold ? cashRemaining : total).toLocaleString('en-IN', {minimumFractionDigits: 2})}`}
+          <SumRow label={isAdvance
+                    ? `Advance · ${advancePct}%`
+                    : (useGold && goldApplied > 0 ? 'Payable now' : 'Total')}
+                  value={`₹${finalPayNow.toLocaleString('en-IN', {minimumFractionDigits: 2})}`}
                   bold/>
         </div>
 
@@ -893,6 +1005,216 @@ function Switch({ on, onToggle }) {
         transition: 'left 160ms ease',
       }}/>
     </button>
+  );
+}
+
+// ── Advance Pay panel (split now / on receipt) ───────────────
+function AdvancePayPanel({ total, pct, setPct, advanceAmount, dueOnReceipt, fulfillment }) {
+  return (
+    <div style={{
+      background: 'linear-gradient(180deg, #FBF7F1 0%, #F4EADD 100%)',
+      borderRadius: 12,
+      border: `1px solid rgba(116,92,0,0.25)`,
+      padding: '14px 16px 16px',
+      display: 'flex', flexDirection: 'column', gap: 12,
+    }}>
+      <div style={{
+        fontFamily: 'Manrope', fontSize: 10.5, color: CX_GOLD_DK,
+        letterSpacing: 0.8, textTransform: 'uppercase', fontWeight: 700,
+      }}>How much to pay now?</div>
+
+      <div style={{ display: 'flex', gap: 8 }}>
+        {ADVANCE_PCT_CHIPS.map(p => {
+          const on = pct === p;
+          return (
+            <button key={p} type="button" onClick={() => setPct(p)} style={{
+              flex: 1, height: 44, borderRadius: 10, cursor: 'pointer',
+              background: on ? '#fff' : 'rgba(255,255,255,0.55)',
+              border: `1.5px solid ${on ? CX_GOLD_DK : 'rgba(116,92,0,0.18)'}`,
+              color: on ? CX_GOLD_DK : CX_INK,
+              boxShadow: on ? '0 2px 8px rgba(116,92,0,0.14)' : 'none',
+              fontFamily: 'Manrope', fontSize: 14, fontWeight: 800,
+              transition: 'all 160ms ease',
+            }}>{p}%</button>
+          );
+        })}
+      </div>
+
+      <div style={{
+        background: '#fff', borderRadius: 10, border: '1px solid rgba(116,92,0,0.16)',
+        padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8,
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+          <span style={{ fontFamily: 'Manrope', fontSize: 11.5, color: CX_INK_SOFT, fontWeight: 600 }}>
+            Pay now
+          </span>
+          <span style={{ fontFamily: 'Manrope', fontWeight: 800, fontSize: 16, color: CX_GOLD_DK }}>
+            ₹{advanceAmount.toLocaleString('en-IN')}
+          </span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+          <span style={{ fontFamily: 'Manrope', fontSize: 11.5, color: CX_INK_SOFT, fontWeight: 600 }}>
+            On {fulfillment === 'pickup' ? 'pickup' : 'delivery'}
+          </span>
+          <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 14, color: CX_INK }}>
+            ₹{dueOnReceipt.toLocaleString('en-IN')}
+          </span>
+        </div>
+      </div>
+
+      <div style={{
+        display: 'flex', alignItems: 'flex-start', gap: 8,
+        fontFamily: 'Manrope', fontSize: 11, color: CX_INK_SOFT, lineHeight: 1.5,
+      }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={CX_GOLD_DK}
+             strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}>
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M12 8v5M12 16h.01"/>
+        </svg>
+        <span>
+          The balance of <strong style={{ color: CX_INK }}>₹{dueOnReceipt.toLocaleString('en-IN')}</strong> will
+          be collected when you {fulfillment === 'pickup' ? 'pick up' : 'receive'} your jewellery.
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ── Store Pickup dropdown (nearest stores, ranked by user's pincode) ─────
+function StorePickupDropdown({ stores, selected, onSelect, open, onToggle, userPincode }) {
+  return (
+    <div style={{
+      background: '#fff', borderRadius: 12,
+      border: `1px solid rgba(176,178,177,0.35)`,
+      overflow: 'hidden',
+    }}>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        style={{
+          width: '100%', padding: '14px 16px', cursor: 'pointer',
+          background: 'transparent', border: 'none', textAlign: 'left',
+          display: 'flex', alignItems: 'center', gap: 14,
+        }}
+      >
+        <div style={{
+          width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+          background: CX_CREAM, color: CX_ACCENT_DK,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 22s-7-6-7-12a7 7 0 0114 0c0 6-7 12-7 12z"/>
+            <circle cx="12" cy="10" r="2.5"/>
+          </svg>
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            fontFamily: 'Manrope', fontSize: 9.5, letterSpacing: 1.4,
+            color: CX_INK_SOFT, textTransform: 'uppercase', fontWeight: 700,
+          }}>Pickup store</div>
+          <div style={{
+            marginTop: 2,
+            fontFamily: 'Manrope', fontWeight: 700, fontSize: 14, color: CX_INK,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>{selected.name}</div>
+          <div style={{
+            marginTop: 2,
+            fontFamily: 'Manrope', fontSize: 11.5, color: CX_INK_SOFT,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>{selected.area} · {selected.km} km away</div>
+        </div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={CX_INK_SOFT}
+             strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
+             style={{ flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 160ms ease' }}>
+          <path d="M6 9l6 6 6-6"/>
+        </svg>
+      </button>
+
+      {open && (
+        <div style={{
+          borderTop: `1px solid ${CX_LINE}`,
+          background: CX_SOFT, maxHeight: 280, overflowY: 'auto',
+        }}>
+          {userPincode && (
+            <div style={{
+              padding: '10px 16px',
+              fontFamily: 'Manrope', fontSize: 10.5, color: CX_INK_SOFT,
+              letterSpacing: 0.6, textTransform: 'uppercase', fontWeight: 600,
+              borderBottom: `1px solid ${CX_LINE}`,
+            }}>
+              Nearest to {userPincode}
+            </div>
+          )}
+          {stores.map((s, i) => {
+            const active = s.id === selected.id;
+            return (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => onSelect(s.id)}
+                style={{
+                  width: '100%', padding: '14px 16px', cursor: 'pointer',
+                  background: active ? 'rgba(172,129,108,0.10)' : 'transparent',
+                  border: 'none', textAlign: 'left',
+                  borderBottom: i < stores.length - 1 ? `1px solid ${CX_LINE}` : 'none',
+                  display: 'flex', alignItems: 'flex-start', gap: 12,
+                  transition: 'background 160ms ease',
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+                  }}>
+                    <span style={{
+                      fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
+                      color: active ? CX_ACCENT_DK : CX_INK,
+                    }}>{s.name}</span>
+                    {i === 0 && (
+                      <span style={{
+                        padding: '1px 7px', borderRadius: 50,
+                        background: 'rgba(76,105,68,0.14)', color: '#4C6944',
+                        fontFamily: 'Manrope', fontSize: 8.5, fontWeight: 800,
+                        letterSpacing: 0.7, textTransform: 'uppercase',
+                      }}>Nearest</span>
+                    )}
+                  </div>
+                  <div style={{
+                    marginTop: 2,
+                    fontFamily: 'Manrope', fontSize: 11.5, color: CX_INK_SOFT,
+                  }}>{s.area}</div>
+                  <div style={{
+                    marginTop: 2,
+                    fontFamily: 'Manrope', fontSize: 10.5, color: CX_INK_SOFT,
+                    letterSpacing: 0.4,
+                  }}>Open {s.hours}</div>
+                </div>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div style={{
+                    fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
+                    color: active ? CX_ACCENT_DK : CX_INK,
+                  }}>{s.km} km</div>
+                  {active && (
+                    <div style={{
+                      marginTop: 2,
+                      width: 18, height: 18, borderRadius: '50%', marginLeft: 'auto',
+                      background: CX_ACCENT_DK, color: '#fff',
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                           strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                    </div>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 

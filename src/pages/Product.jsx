@@ -26,6 +26,7 @@ function ProductPage({ go, state, setState }) {
   const [saved, setSaved]         = React.useState(false);
   const [imgIdx, setImgIdx]       = React.useState(0);
   const [sizeChartOpen, setSizeChartOpen] = React.useState(false);
+  const [customiseOpen, setCustomiseOpen] = React.useState(false);
   const [shareFeedback, setShareFeedback] = React.useState(null);   // 'copied' | 'error' | null
 
   async function onShare() {
@@ -268,46 +269,29 @@ function ProductPage({ go, state, setState }) {
           cold-forged band, 40+ artisan hours per piece.
         </p>
 
-        {/* Variant rows */}
-        <VariantRow label="Material" value={colors[colorIdx].n}>
-          {colors.map((c, i) => (
-            <button key={i} onClick={() => setColorIdx(i)} aria-label={c.n} style={{
-              width: 36, height: 36, borderRadius: 6, background: c.c,
-              border: i === colorIdx ? `2px solid ${PS_ACCENT_DK}` : `1px solid rgba(0,0,0,0.08)`,
-              cursor: 'pointer', padding: 0,
-              boxShadow: i === colorIdx ? '0 2px 6px rgba(119,88,66,0.25)' : 'none',
-            }}/>
-          ))}
-          <MoreTile open={openMenu === 'material'} onOpen={() => setOpenMenu(m => m === 'material' ? null : 'material')}
-                    options={colorsMore} onPick={n => setOpenMenu(null)}/>
-        </VariantRow>
-
-        <VariantRow
-          label={`Size · US ${sizes[sizeIdx]}`}
-          rightSlot={<SizeChartLink onClick={() => setSizeChartOpen(true)}/>}
+        {/* Single CTA: Customise Your Jewel — opens bottom sheet with all variant rows */}
+        <button
+          type="button"
+          onClick={() => setCustomiseOpen(true)}
+          style={{
+            marginTop: 22, width: '100%', height: 52, borderRadius: 50, background: '#fff',
+            border: `2px solid ${PS_ACCENT}`, cursor: 'pointer',
+            fontFamily: FS.sans, fontWeight: 700, fontSize: 14, color: PS_ACCENT_DK,
+            letterSpacing: 0.6, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+            boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
+          }}
         >
-          {sizes.map((s, i) => (
-            <VariantChip key={s} active={i === sizeIdx} onClick={() => setSizeIdx(i)}>{s}</VariantChip>
-          ))}
-          <MoreTile open={openMenu === 'size'} onOpen={() => setOpenMenu(m => m === 'size' ? null : 'size')}
-                    options={sizesMore} onPick={n => setOpenMenu(null)}/>
-        </VariantRow>
-
-        <VariantRow label="Weight Range (gm)" value={`${weights[weightIdx]} gm`}>
-          {weights.map((w, i) => (
-            <VariantChip key={w} active={i === weightIdx} onClick={() => setWeightIdx(i)}>{w}</VariantChip>
-          ))}
-          <MoreTile open={openMenu === 'weight'} onOpen={() => setOpenMenu(m => m === 'weight' ? null : 'weight')}
-                    options={weightsMore} onPick={n => setOpenMenu(null)}/>
-        </VariantRow>
-
-        <VariantRow label="Diamond Carat (ct)" value={`${carats[caratIdx]} ct`}>
-          {carats.map((ct, i) => (
-            <VariantChip key={ct} active={i === caratIdx} onClick={() => setCaratIdx(i)}>{ct}</VariantChip>
-          ))}
-          <MoreTile open={openMenu === 'carat'} onOpen={() => setOpenMenu(m => m === 'carat' ? null : 'carat')}
-                    options={caratsMore} onPick={n => setOpenMenu(null)}/>
-        </VariantRow>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="4" y1="6"  x2="20" y2="6"/>
+            <line x1="4" y1="12" x2="20" y2="12"/>
+            <line x1="4" y1="18" x2="20" y2="18"/>
+            <circle cx="9"  cy="6"  r="2.2" fill="currentColor"/>
+            <circle cx="15" cy="12" r="2.2" fill="currentColor"/>
+            <circle cx="9"  cy="18" r="2.2" fill="currentColor"/>
+          </svg>
+          Customise Your Jewel
+        </button>
 
         {/* Single CTA: Virtual Try On */}
         <button style={{
@@ -654,6 +638,17 @@ function ProductPage({ go, state, setState }) {
           if (next >= 0) setSizeIdx(next);
           setSizeChartOpen(false);
         }}
+      />
+
+      <CustomiseSheet
+        open={customiseOpen}
+        onClose={() => setCustomiseOpen(false)}
+        colors={colors}      colorIdx={colorIdx}   setColorIdx={setColorIdx}   colorsMore={colorsMore}
+        sizes={sizes}        sizeIdx={sizeIdx}     setSizeIdx={setSizeIdx}     sizesMore={sizesMore}
+        weights={weights}    weightIdx={weightIdx} setWeightIdx={setWeightIdx} weightsMore={weightsMore}
+        carats={carats}      caratIdx={caratIdx}   setCaratIdx={setCaratIdx}   caratsMore={caratsMore}
+        openMenu={openMenu}  setOpenMenu={setOpenMenu}
+        onOpenSizeChart={() => setSizeChartOpen(true)}
       />
     </div>
   );
@@ -1254,6 +1249,191 @@ function SizeChartSheet({ open, onClose, selectedSize, onPickSize }) {
           to   { transform: translateY(0); }
         }
       `}</style>
+    </>
+  );
+}
+
+/* ─────────────────── Customise Sheet ─────────────────── */
+// Bottom-sheet variant of the Material/Size/Weight/Carat selectors.
+// Mirrors SizeChartSheet's drag-to-dismiss + slide-up animation, but at a
+// lower z-index so the size chart can layer above it.
+function CustomiseSheet({
+  open, onClose,
+  colors, colorIdx, setColorIdx, colorsMore,
+  sizes,  sizeIdx,  setSizeIdx,  sizesMore,
+  weights,weightIdx,setWeightIdx,weightsMore,
+  carats, caratIdx, setCaratIdx, caratsMore,
+  openMenu, setOpenMenu,
+  onOpenSizeChart,
+}) {
+  const [dragY, setDragY] = React.useState(0);
+  const [dragging, setDragging] = React.useState(false);
+  const startYRef = React.useRef(0);
+  const DISMISS_THRESHOLD = 90;
+
+  React.useEffect(() => {
+    if (!open) { setDragY(0); setDragging(false); return; }
+    const onKey = e => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  function handleTouchStart(e) {
+    startYRef.current = e.touches[0].clientY;
+    setDragging(true);
+  }
+  function handleTouchMove(e) {
+    const delta = e.touches[0].clientY - startYRef.current;
+    setDragY(Math.max(0, delta));
+  }
+  function handleTouchEnd() {
+    setDragging(false);
+    if (dragY > DISMISS_THRESHOLD) { onClose(); return; }
+    setDragY(0);
+  }
+
+  const sheetTransform = dragging || dragY > 0 ? `translateY(${dragY}px)` : undefined;
+  const sheetTransition = dragging ? 'none' : 'transform 260ms cubic-bezier(.2,.8,.2,1)';
+
+  return (
+    <>
+      <div
+        onClick={onClose}
+        aria-label="Close customise"
+        style={{
+          position: 'fixed', inset: 0, zIndex: 30,
+          background: 'rgba(15,14,13,0.55)',
+          animation: 'sc-fade 220ms ease',
+        }}
+      />
+
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Customise your jewel"
+        onClick={e => e.stopPropagation()}
+        style={{
+          position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 35,
+          maxHeight: '88vh', display: 'flex', flexDirection: 'column',
+          background: '#fff',
+          borderTopLeftRadius: 22, borderTopRightRadius: 22,
+          boxShadow: '0 -12px 40px rgba(15,14,13,0.28)',
+          animation: dragging ? 'none' : 'sc-slideup 340ms cubic-bezier(.2,.8,.2,1)',
+          transform: sheetTransform,
+          transition: sheetTransition,
+          overflow: 'hidden',
+          willChange: 'transform',
+        }}
+      >
+        {/* Grab handle */}
+        <div
+          role="button"
+          tabIndex={0}
+          aria-label="Drag to dismiss"
+          onClick={onClose}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          style={{
+            display: 'flex', justifyContent: 'center',
+            padding: '10px 0 6px',
+            cursor: 'grab', touchAction: 'none',
+          }}
+        >
+          <span style={{
+            width: 44, height: 5, borderRadius: 3,
+            background: 'rgba(47,52,48,0.28)',
+          }}/>
+        </div>
+
+        {/* Header */}
+        <div style={{
+          padding: '10px 20px 14px',
+          display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10,
+          borderBottom: `1px solid ${PS_LINE}`,
+        }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{
+              fontFamily: FS.serif, fontSize: 20, fontWeight: 700, color: PS_INK, lineHeight: 1.2,
+            }}>Customise Your Jewel</div>
+            <div style={{
+              marginTop: 4,
+              fontFamily: FS.sans, fontSize: 11.5, color: PS_SOFT, lineHeight: 1.45,
+            }}>
+              Pick the material, size, weight and diamond carat for this piece.
+            </div>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Close" style={{
+            width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
+            background: 'rgba(47,52,48,0.06)', border: 'none', cursor: 'pointer',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            color: PS_INK,
+          }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* Body — scrollable variant rows */}
+        <div style={{ overflowY: 'auto', flex: 1, padding: '4px 20px 12px' }}>
+          <VariantRow label="Material" value={colors[colorIdx].n}>
+            {colors.map((c, i) => (
+              <button key={i} onClick={() => setColorIdx(i)} aria-label={c.n} style={{
+                width: 36, height: 36, borderRadius: 6, background: c.c,
+                border: i === colorIdx ? `2px solid ${PS_ACCENT_DK}` : `1px solid rgba(0,0,0,0.08)`,
+                cursor: 'pointer', padding: 0,
+                boxShadow: i === colorIdx ? '0 2px 6px rgba(119,88,66,0.25)' : 'none',
+              }}/>
+            ))}
+            <MoreTile open={openMenu === 'material'} onOpen={() => setOpenMenu(m => m === 'material' ? null : 'material')}
+                      options={colorsMore} onPick={() => setOpenMenu(null)}/>
+          </VariantRow>
+
+          <VariantRow
+            label={`Size · US ${sizes[sizeIdx]}`}
+            rightSlot={<SizeChartLink onClick={onOpenSizeChart}/>}
+          >
+            {sizes.map((s, i) => (
+              <VariantChip key={s} active={i === sizeIdx} onClick={() => setSizeIdx(i)}>{s}</VariantChip>
+            ))}
+            <MoreTile open={openMenu === 'size'} onOpen={() => setOpenMenu(m => m === 'size' ? null : 'size')}
+                      options={sizesMore} onPick={() => setOpenMenu(null)}/>
+          </VariantRow>
+
+          <VariantRow label="Weight Range (gm)" value={`${weights[weightIdx]} gm`}>
+            {weights.map((w, i) => (
+              <VariantChip key={w} active={i === weightIdx} onClick={() => setWeightIdx(i)}>{w}</VariantChip>
+            ))}
+            <MoreTile open={openMenu === 'weight'} onOpen={() => setOpenMenu(m => m === 'weight' ? null : 'weight')}
+                      options={weightsMore} onPick={() => setOpenMenu(null)}/>
+          </VariantRow>
+
+          <VariantRow label="Diamond Carat (ct)" value={`${carats[caratIdx]} ct`}>
+            {carats.map((ct, i) => (
+              <VariantChip key={ct} active={i === caratIdx} onClick={() => setCaratIdx(i)}>{ct}</VariantChip>
+            ))}
+            <MoreTile open={openMenu === 'carat'} onOpen={() => setOpenMenu(m => m === 'carat' ? null : 'carat')}
+                      options={caratsMore} onPick={() => setOpenMenu(null)}/>
+          </VariantRow>
+        </div>
+
+        {/* Footer — Apply button */}
+        <div style={{
+          padding: '12px 20px 18px',
+          borderTop: `1px solid ${PS_LINE}`,
+          background: '#fff',
+        }}>
+          <button onClick={onClose} style={{
+            width: '100%', height: 50, borderRadius: 50,
+            background: PS_ACCENT, color: '#fff', border: 'none', cursor: 'pointer',
+            fontFamily: FS.sans, fontWeight: 700, fontSize: 14, letterSpacing: 0.6,
+            boxShadow: '0 4px 14px rgba(119,88,66,0.3)',
+          }}>Apply</button>
+        </div>
+      </div>
     </>
   );
 }

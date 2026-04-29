@@ -10,12 +10,28 @@ const LS_ACCENT = 'rgb(175,130,109)';
 const LS_ACCENT_DK = 'rgb(119,88,66)';
 const LS_GOLD = 'rgb(115,92,0)';
 
+const SORT_OPTIONS = [
+  { id: 'newest',     label: 'Newest' },
+  { id: 'price-asc',  label: 'Price: Low to High' },
+  { id: 'price-desc', label: 'Price: High to Low' },
+  { id: 'name-asc',   label: 'Name: A to Z' },
+];
+
 function ListingPage({ go }) {
   const cats = ['All', 'Necklaces', 'Rings', 'Bracelets', 'Earrings', 'Anklets'];
   const [cat, setCat] = React.useState('All');
   const [query, setQuery] = React.useState('');
   const [filterOpen, setFilterOpen] = React.useState(false);
   const [filters, setFilters] = React.useState(null);
+  const [sort, setSort] = React.useState('newest');
+  const [sortOpen, setSortOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!sortOpen) return;
+    const close = () => setSortOpen(false);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [sortOpen]);
 
   const products = [
     { name: 'Butterfly Whispers', tag: 'EXCLUSIVE',    price: 56000, tone: 'blush', cat: 'Necklaces', img: 'assets/product/product-1.png' },
@@ -30,6 +46,18 @@ function ListingPage({ go }) {
     (cat === 'All' || p.cat === cat) &&
     (!query || p.name.toLowerCase().includes(query.toLowerCase()))
   );
+
+  const sorted = React.useMemo(() => {
+    const list = [...filtered];
+    switch (sort) {
+      case 'price-asc':  list.sort((a, b) => a.price - b.price); break;
+      case 'price-desc': list.sort((a, b) => b.price - a.price); break;
+      case 'name-asc':   list.sort((a, b) => a.name.localeCompare(b.name)); break;
+      default: break;  // 'newest' — preserve insertion order
+    }
+    return list;
+  }, [filtered, sort]);
+  const sortLabel = (SORT_OPTIONS.find(o => o.id === sort) || SORT_OPTIONS[0]).label;
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: LS_BG, minHeight: 0 }}>
@@ -119,12 +147,81 @@ function ListingPage({ go }) {
           fontFamily: `'Manrope', ${LS.sans}`, fontSize: 12, color: 'rgb(107,92,84)',
         }}>
           <span>{filtered.length} piece{filtered.length !== 1 ? 's' : ''} · {cat}</span>
-          <span style={{ letterSpacing: 1.2, fontWeight: 700, color: LS_ACCENT_DK }}>SORT · NEWEST</span>
+
+          <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => setSortOpen(o => !o)}
+              aria-expanded={sortOpen}
+              aria-haspopup="listbox"
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                fontFamily: `'Manrope', ${LS.sans}`, fontSize: 12, fontWeight: 700,
+                letterSpacing: 1.2, color: LS_ACCENT_DK,
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+              }}
+            >
+              SORT · {sortLabel.toUpperCase()}
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
+                   style={{ transform: sortOpen ? 'rotate(180deg)' : 'none', transition: 'transform 160ms ease' }}>
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
+
+            {sortOpen && (
+              <div role="listbox" style={{
+                position: 'absolute', top: 'calc(100% + 8px)', right: 0,
+                background: '#fff', borderRadius: 12,
+                border: '1px solid rgba(115,92,0,0.15)',
+                boxShadow: '0 12px 28px -8px rgba(47,52,48,0.18)',
+                minWidth: 200, zIndex: 10, overflow: 'hidden',
+                animation: 'ls-sort-pop 160ms ease',
+              }}>
+                {SORT_OPTIONS.map((opt, i) => {
+                  const active = sort === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      role="option"
+                      aria-selected={active}
+                      onClick={() => { setSort(opt.id); setSortOpen(false); }}
+                      style={{
+                        width: '100%', padding: '12px 14px', textAlign: 'left',
+                        background: active ? 'rgba(175,130,109,0.10)' : 'transparent',
+                        border: 'none', cursor: 'pointer',
+                        borderBottom: i < SORT_OPTIONS.length - 1 ? '1px solid rgba(47,52,48,0.06)' : 'none',
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+                        fontFamily: `'Manrope', ${LS.sans}`, fontSize: 13,
+                        color: active ? LS_ACCENT_DK : '#2F3430',
+                        fontWeight: active ? 700 : 500, letterSpacing: 0.2,
+                      }}
+                    >
+                      <span>{opt.label}</span>
+                      {active && (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                      )}
+                    </button>
+                  );
+                })}
+                <style>{`
+                  @keyframes ls-sort-pop {
+                    from { opacity: 0; transform: translateY(-4px); }
+                    to   { opacity: 1; transform: translateY(0); }
+                  }
+                `}</style>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* 2-col product grid */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 10 }}>
-          {filtered.map((p, i) => (
+          {sorted.map((p, i) => (
             <ProductCard key={i} p={p} onClick={() => go('product')}/>
           ))}
         </div>

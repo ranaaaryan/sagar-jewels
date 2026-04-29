@@ -1,144 +1,185 @@
 import React from 'react';
-// Login / Get Started splash — two overlapping hero images + big headline + CTA
-// Based on the Figma "Log In" frame: gold-detail card overlapped by a necklace-detail card,
-// then "Find Your Perfect Sparkle" headline and a brown pill "GET STARTED" button.
+// Get-Started splash — luxury editorial layout.
+//   • Centered monogram crest + house wordmark + "Est." dateline
+//   • Slim Art Deco ornament divider
+//   • One framed hero image (no collage / no chip pill / no sparkle dots)
+//   • Centered serif headline with an italic flourish
+//   • Tight pill CTA → SignUp; subtle "Sign in" link below
 
 const LT = window.JEWEL_TOKENS;
-const LOGIN_BG = 'rgb(250,249,246)';
-const LOGIN_ACCENT = 'rgb(175,130,109)';
+const LOGIN_BG_TOP    = '#FAF8F4';
+const LOGIN_BG_BOTTOM = '#F2EAD8';
+const LOGIN_INK       = '#2F3430';
+const LOGIN_INK_SOFT  = '#6E655C';
+const LOGIN_MUTED     = '#9A8F7E';
+const LOGIN_ACCENT    = 'rgb(175,130,109)';
 const LOGIN_ACCENT_DK = 'rgb(119,88,66)';
-const LOGIN_CREAM = 'rgb(255,246,242)';
+const LOGIN_GILT      = '#C9A77A';
+const LOGIN_CREAM     = '#FAF8F4';
 
 function LoginPage({ go }) {
   return (
     <div style={{
       flex: 1, display: 'flex', flexDirection: 'column',
-      background: LOGIN_BG, padding: '32px 24px 48px', position: 'relative', overflow: 'hidden',
+      background: `linear-gradient(180deg, ${LOGIN_BG_TOP} 0%, ${LOGIN_BG_BOTTOM} 100%)`,
+      padding: '36px 28px 32px',
+      position: 'relative', overflow: 'hidden',
     }}>
-      {/* Brand mark */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18,
+      {/* House mark — crest, wordmark, dateline */}
+      <header style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
       }}>
+        <Crest/>
         <div style={{
-          width: 28, height: 28, borderRadius: 6,
-          background: `linear-gradient(135deg, ${LOGIN_ACCENT} 0%, ${LOGIN_ACCENT_DK} 100%)`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: LOGIN_CREAM, fontFamily: `'Noto Serif', ${LT.serif}`, fontSize: 15, fontWeight: 700,
-          boxShadow: '0 4px 12px rgba(119,88,66,0.25)',
-        }}>A</div>
-        <div style={{
-          fontFamily: `'Noto Serif', ${LT.serif}`, fontSize: 15, fontWeight: 600,
-          letterSpacing: 3, color: '#2F3430', textTransform: 'uppercase',
+          fontFamily: `'Noto Serif', ${LT.serif}`, fontSize: 11, fontWeight: 600,
+          letterSpacing: 4, color: LOGIN_INK, textTransform: 'uppercase',
         }}>Sagar Jewellers</div>
-      </div>
+        <div style={{
+          fontFamily: `'Manrope', ${LT.sans}`, fontSize: 9, fontWeight: 600,
+          letterSpacing: 2.4, color: LOGIN_MUTED, textTransform: 'uppercase',
+        }}>Est. 1948 · Bengaluru</div>
+      </header>
 
-      {/* Image collage */}
+      <Ornament/>
+
+      {/* Hero — single framed portrait */}
       <div style={{
-        position: 'relative', height: 340, marginTop: 6,
+        margin: '24px auto 0',
+        width: '76%', aspectRatio: '3 / 4',
+        borderRadius: 18, overflow: 'hidden', position: 'relative',
+        background: `url(assets/login/hero1.png) center / cover no-repeat, #F1EBE3`,
+        border: `5px solid ${LOGIN_CREAM}`,
+        boxShadow: `
+          0 28px 48px -16px rgba(47,52,48,0.22),
+          0 6px 14px -6px rgba(47,52,48,0.10),
+          0 0 0 1px rgba(201,167,122,0.18)
+        `,
       }}>
-        {/* back card */}
         <div style={{
-          position: 'absolute', left: 0, top: 0,
-          width: 230, height: 286, borderRadius: 14,
-          background: 'url(assets/login/hero1.png) center / cover no-repeat',
-          boxShadow: '0 32px 64px -16px rgba(47,52,48,0.14)',
+          position: 'absolute', inset: 0,
+          background: 'linear-gradient(180deg, transparent 60%, rgba(47,52,48,0.18) 100%)',
         }}/>
-        {/* decorative sparkle dots behind */}
-        <SparkleDots/>
-        {/* front card, overlapping */}
-        <div style={{
-          position: 'absolute', right: 0, bottom: 0,
-          width: 184, height: 246, borderRadius: 14,
-          background: 'url(assets/login/hero2.png) center / cover no-repeat',
-          border: `4px solid ${LOGIN_BG}`,
-          boxShadow: '0 32px 64px -16px rgba(47,52,48,0.14)',
-        }}/>
-        {/* tiny "hand-picked" chip */}
-        <div style={{
-          position: 'absolute', left: 10, bottom: 72,
-          background: '#fff', padding: '8px 12px', borderRadius: 999,
-          display: 'flex', alignItems: 'center', gap: 8,
-          boxShadow: '0 10px 24px -8px rgba(47,52,48,0.18)',
-          fontFamily: `'Manrope', ${LT.sans}`, fontSize: 11, color: '#2F3430', fontWeight: 600,
-        }}>
-          <div style={{
-            width: 6, height: 6, borderRadius: 99, background: LOGIN_ACCENT,
-          }}/>
-          Hand-picked · BIS Hallmark
-        </div>
       </div>
 
       {/* Headline */}
-      <div style={{ marginTop: 30 }}>
+      <div style={{ marginTop: 28, textAlign: 'center' }}>
         <h1 style={{
           margin: 0,
-          fontFamily: `'Epilogue', 'Noto Serif', ${LT.serif}`,
-          fontWeight: 700, fontSize: 50, lineHeight: 1.07, letterSpacing: -1.2,
-          color: '#2F3430', textWrap: 'pretty',
-        }}>Find Your<br/>Perfect<br/><em style={{
-          fontFamily: `'Noto Serif', ${LT.serif}`, fontStyle: 'italic',
-          fontWeight: 500, color: LOGIN_ACCENT_DK,
-        }}>Sparkle</em></h1>
+          fontFamily: `'Noto Serif', ${LT.serif}`,
+          fontSize: 34, fontWeight: 600, lineHeight: 1.18,
+          color: LOGIN_INK, letterSpacing: -0.4,
+        }}>
+          Heirloom luxury,
+          <br/>
+          <em style={{
+            fontFamily: `'Noto Serif', ${LT.serif}`, fontStyle: 'italic',
+            fontWeight: 500, color: LOGIN_ACCENT_DK,
+          }}>made for you.</em>
+        </h1>
         <p style={{
-          margin: '18px 0 0',
-          fontFamily: `'Manrope', ${LT.sans}`, fontSize: 16, lineHeight: 1.55,
-          color: 'rgb(92,96,92)', maxWidth: 300,
-        }}>Find your perfect gems and elevate<br/>your look effortlessly.</p>
+          margin: '12px auto 0', maxWidth: 280,
+          fontFamily: `'Manrope', ${LT.sans}`, fontSize: 13, lineHeight: 1.6,
+          color: LOGIN_INK_SOFT,
+        }}>
+          Hand-crafted pieces, certified by BIS — delivered with care since 1948.
+        </p>
       </div>
 
-      <div style={{ flex: 1 }}/>
+      <div style={{ flex: 1, minHeight: 16 }}/>
 
-      {/* CTA pill button */}
+      {/* CTA */}
       <button
-        onClick={() => go('home')}
+        onClick={() => go('signup')}
         style={{
-          marginTop: 24, width: '100%', height: 66, border: 'none',
-          borderRadius: 999, background: LOGIN_ACCENT, color: LOGIN_CREAM,
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '0 12px 0 40px', cursor: 'pointer',
-          fontFamily: `'Noto Serif', ${LT.serif}`,
-          fontSize: 18, fontWeight: 700, letterSpacing: 0.5,
-          boxShadow: '0 12px 24px -6px rgba(119,88,66,0.35), 0 4px 8px -2px rgba(0,0,0,0.1)',
+          width: '100%', height: 60, border: 'none', borderRadius: 999,
+          background: LOGIN_ACCENT, color: LOGIN_CREAM,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
+          cursor: 'pointer',
+          fontFamily: `'Noto Serif', ${LT.serif}`, fontSize: 14, fontWeight: 700,
+          letterSpacing: 3, textTransform: 'uppercase',
+          boxShadow: '0 14px 26px -10px rgba(119,88,66,0.40), 0 2px 6px -2px rgba(119,88,66,0.18)',
         }}
       >
-        <span>GET STARTED</span>
+        <span>Begin</span>
         <span style={{
-          width: 48, height: 48, borderRadius: '50%', background: LOGIN_CREAM,
-          color: LOGIN_ACCENT_DK,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          width: 28, height: 28, borderRadius: '50%',
+          background: 'rgba(250,248,244,0.18)',
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M5 12h14M13 5l7 7-7 7"/>
           </svg>
         </span>
       </button>
 
-      {/* sign-in subline */}
+      {/* Sign-in link */}
       <div style={{
         marginTop: 18, textAlign: 'center',
-        fontFamily: `'Manrope', ${LT.sans}`, fontSize: 13, color: 'rgb(92,96,92)',
+        fontFamily: `'Manrope', ${LT.sans}`, fontSize: 12, color: LOGIN_INK_SOFT,
+        letterSpacing: 0.3,
       }}>
-        Already have an account?{' '}
-        <span onClick={() => go('home')} style={{
-          color: LOGIN_ACCENT_DK, fontWeight: 700, cursor: 'pointer',
-          textDecoration: 'underline', textUnderlineOffset: 2,
-        }}>Sign in</span>
+        Already a member?{' '}
+        <span
+          onClick={() => go('signin')}
+          style={{
+            color: LOGIN_ACCENT_DK, fontWeight: 700, cursor: 'pointer',
+            letterSpacing: 0.6, paddingBottom: 1,
+            borderBottom: `1px solid ${LOGIN_ACCENT_DK}`,
+          }}
+        >Sign in</span>
       </div>
     </div>
   );
 }
 
-function SparkleDots() {
+// Round monogram — gilt gradient with a soft inner highlight.
+function Crest() {
   return (
-    <svg width="340" height="340" viewBox="0 0 340 340"
-         style={{ position: 'absolute', left: -20, top: -20, pointerEvents: 'none', opacity: 0.5 }}>
-      {[[40,70],[280,40],[300,150],[30,260],[90,310],[310,280]].map(([x,y],i) => (
-        <g key={i} transform={`translate(${x} ${y})`}>
-          <path d="M 0 -6 L 1.5 -1.5 L 6 0 L 1.5 1.5 L 0 6 L -1.5 1.5 L -6 0 L -1.5 -1.5 Z" fill="rgb(175,130,109)" opacity="0.35"/>
-        </g>
-      ))}
-    </svg>
+    <div style={{
+      width: 58, height: 58, borderRadius: '50%',
+      background: `radial-gradient(circle at 30% 28%, #E8C99A 0%, #B98C5A 55%, #6B4A2E 100%)`,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      boxShadow: `
+        0 12px 24px -10px rgba(107,74,46,0.45),
+        inset 0 1px 0 rgba(255,255,255,0.35),
+        inset 0 -2px 4px rgba(75,52,30,0.35)
+      `,
+      position: 'relative',
+    }}>
+      <span style={{
+        fontFamily: `'Noto Serif', ${LT.serif}`,
+        fontSize: 28, fontWeight: 700, fontStyle: 'italic',
+        color: LOGIN_CREAM, letterSpacing: -0.6,
+        textShadow: '0 1px 1px rgba(75,52,30,0.4)',
+      }}>S</span>
+    </div>
+  );
+}
+
+// Slim Art Deco–style divider — gold hairlines flanking a centered diamond.
+function Ornament() {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      gap: 12, marginTop: 18,
+    }}>
+      <span style={{
+        width: 56, height: 1,
+        background: `linear-gradient(90deg, transparent, ${LOGIN_GILT} 50%, transparent)`,
+        opacity: 0.7,
+      }}/>
+      <span style={{
+        width: 6, height: 6, transform: 'rotate(45deg)',
+        background: LOGIN_GILT, opacity: 0.85,
+        boxShadow: `0 0 0 2px ${LOGIN_BG_TOP}, 0 0 0 3px rgba(201,167,122,0.4)`,
+      }}/>
+      <span style={{
+        width: 56, height: 1,
+        background: `linear-gradient(90deg, transparent, ${LOGIN_GILT} 50%, transparent)`,
+        opacity: 0.7,
+      }}/>
+    </div>
   );
 }
 

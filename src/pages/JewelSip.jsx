@@ -13,24 +13,101 @@ const JS_INK_SOFT  = '#6E655C';
 const JS_LINE      = 'rgba(47,52,48,0.10)';
 
 const SCHEME_ID   = 'jewel-sip';
-const MIN_MONTHLY = 1500;
-const MAX_MONTHLY = 100000;
 const TENURES     = [12, 18, 24, 36, 48, 60];
-const AMOUNT_CHIPS = [2000, 5000, 10000, 15000, 25000];
+const FREQUENCIES = [
+  { id: 'daily',   label: 'Daily',   short: 'day',  perMonth: 30, min: 100,  max: 5000,   defaultAmt: 200,  chips: [100, 200, 500, 1000, 2000] },
+  { id: 'weekly',  label: 'Weekly',  short: 'week', perMonth: 4,  min: 500,  max: 25000,  defaultAmt: 1000, chips: [500, 1000, 2500, 5000, 10000] },
+  { id: 'monthly', label: 'Monthly', short: 'mo',   perMonth: 1,  min: 1500, max: 100000, defaultAmt: 5000, chips: [2000, 5000, 10000, 15000, 25000] },
+];
+const FREQ_BY_ID = Object.fromEntries(FREQUENCIES.map(f => [f.id, f]));
 
 function JewelSipPage({ go, state, setState }) {
   const active = (state.user.sips || []).find(
     s => s.schemeId === SCHEME_ID && s.status === 'active'
   );
+  const [view, setView] = React.useState(active ? 'dashboard' : 'enroll');
 
   return (
     <>
       <TopBar title="Jewel SIP" onBack={() => go('schemes')}/>
-      {active
-        ? <SipDashboard sip={active} go={go} state={state} setState={setState}/>
+      <SipTabs view={view} setView={setView}/>
+      {view === 'dashboard'
+        ? (active
+            ? <SipDashboard sip={active} go={go} state={state} setState={setState}/>
+            : <NoActiveSip onCreate={() => setView('enroll')}/>)
         : <SipEnrollmentForm go={go} state={state} setState={setState}/>
       }
     </>
+  );
+}
+
+function SipTabs({ view, setView }) {
+  const Item = ({ id, label }) => {
+    const on = view === id;
+    return (
+      <button type="button" onClick={() => setView(id)} style={{
+        flex: 1, height: 38, border: 'none', cursor: 'pointer',
+        background: on ? '#fff' : 'transparent',
+        color: on ? JS_GOLD_DK : JS_INK_SOFT,
+        fontFamily: `'Manrope', ${JS_T.sans}`, fontSize: 11.5, fontWeight: 700,
+        letterSpacing: 0.5, textTransform: 'uppercase',
+        borderRadius: 8,
+        boxShadow: on ? '0 1px 4px rgba(115,92,0,0.18)' : 'none',
+        transition: 'all 160ms ease',
+      }}>{label}</button>
+    );
+  };
+  return (
+    <div style={{ padding: '10px 16px 0', background: JS_T.bg }}>
+      <div style={{
+        display: 'flex', gap: 4, padding: 4,
+        borderRadius: 10, background: '#EFE7DA',
+        border: `1px solid ${JS_LINE}`,
+      }}>
+        <Item id="enroll" label="Create New SIP"/>
+        <Item id="dashboard" label="Active SIP"/>
+      </div>
+    </div>
+  );
+}
+
+function NoActiveSip({ onCreate }) {
+  return (
+    <div style={{
+      flex: 1, overflowY: 'auto', background: JS_T.bg,
+      padding: '24px 16px 40px',
+      display: 'flex', justifyContent: 'center',
+    }}>
+      <div style={{
+        marginTop: 30, padding: '28px 22px 26px', borderRadius: 18,
+        background: '#fff', border: `1px solid ${JS_LINE}`,
+        textAlign: 'center', maxWidth: 360, width: '100%', height: 'fit-content',
+      }}>
+        <div style={{
+          width: 56, height: 56, borderRadius: '50%', margin: '0 auto 14px',
+          background: JS_GOLD_TINT, color: JS_GOLD_DK,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 6v12M6 12h12"/>
+          </svg>
+        </div>
+        <div style={{
+          fontFamily: `'Noto Serif', ${JS_T.serif}`, fontSize: 18, fontWeight: 700, color: JS_INK,
+        }}>No active Jewel SIP</div>
+        <div style={{
+          marginTop: 6,
+          fontFamily: `'Manrope', ${JS_T.sans}`, fontSize: 12.5, color: JS_INK_SOFT, lineHeight: 1.55,
+        }}>Start a new monthly plan to begin accruing 24K gold.</div>
+        <button onClick={onCreate} style={{
+          marginTop: 18, height: 44, padding: '0 24px', borderRadius: 10, border: 'none',
+          background: JS_GOLD, color: '#fff', cursor: 'pointer',
+          fontFamily: `'Manrope', ${JS_T.sans}`, fontSize: 12, fontWeight: 700,
+          letterSpacing: 0.7, textTransform: 'uppercase',
+          boxShadow: '0 4px 12px rgba(115,92,0,0.22)',
+        }}>Create New SIP</button>
+      </div>
+    </div>
   );
 }
 
@@ -38,14 +115,23 @@ function JewelSipPage({ go, state, setState }) {
 
 function SipEnrollmentForm({ go, state, setState }) {
   const rate = state.goldRate?.buy || 11850;
-  const [monthly, setMonthly] = React.useState(5000);
+  const [frequency, setFrequencyId] = React.useState('monthly');
+  const freq = FREQ_BY_ID[frequency];
+  const [monthly, setMonthly] = React.useState(freq.defaultAmt);
   const [tenure, setTenure]   = React.useState(24);
   const [autopay, setAutopay] = React.useState(true);
   const [touched, setTouched] = React.useState(false);
 
-  const contractValue = monthly * tenure;
-  const estLockedGm   = contractValue / rate;
-  const maturityDate  = new Date(Date.now() + tenure * 30 * 24 * 60 * 60 * 1000);
+  function changeFrequency(id) {
+    setFrequencyId(id);
+    setMonthly(FREQ_BY_ID[id].defaultAmt);
+    setTouched(false);
+  }
+
+  const totalInstalments = tenure * freq.perMonth;
+  const contractValue    = monthly * totalInstalments;
+  const estLockedGm      = contractValue / rate;
+  const maturityDate     = new Date(Date.now() + tenure * 30 * 24 * 60 * 60 * 1000);
 
   // PAN gate — gate the enrollment if the full contract value > threshold
   const pan = usePanGate({ user: state.user, cumulativeValue: contractValue });
@@ -54,8 +140,8 @@ function SipEnrollmentForm({ go, state, setState }) {
   const error = (() => {
     if (!touched) return null;
     if (!Number.isFinite(monthly) || monthly <= 0) return 'Enter a valid amount';
-    if (monthly < MIN_MONTHLY) return `Minimum monthly instalment is ₹${MIN_MONTHLY.toLocaleString('en-IN')}`;
-    if (monthly > MAX_MONTHLY) return `Maximum is ₹${MAX_MONTHLY.toLocaleString('en-IN')}`;
+    if (monthly < freq.min) return `Minimum ${freq.label.toLowerCase()} instalment is ₹${freq.min.toLocaleString('en-IN')}`;
+    if (monthly > freq.max) return `Maximum ${freq.label.toLowerCase()} instalment is ₹${freq.max.toLocaleString('en-IN')}`;
     return null;
   })();
 
@@ -68,7 +154,10 @@ function SipEnrollmentForm({ go, state, setState }) {
 
   function actuallyEnroll() {
     const now = new Date();
-    const nextDue = new Date(now); nextDue.setMonth(nextDue.getMonth() + 1);
+    const nextDue = new Date(now);
+    if (frequency === 'daily')      nextDue.setDate(nextDue.getDate() + 1);
+    else if (frequency === 'weekly') nextDue.setDate(nextDue.getDate() + 7);
+    else                             nextDue.setMonth(nextDue.getMonth() + 1);
     const id = `sip_${now.getTime()}`;
     setState(s => ({
       ...s,
@@ -76,7 +165,8 @@ function SipEnrollmentForm({ go, state, setState }) {
         ...(s.user.sips || []),
         {
           id, schemeId: SCHEME_ID, schemeName: 'Jewel SIP',
-          monthly, tenure, autopay,
+          monthly, tenure, frequency, autopay,
+          totalInstalments,
           startedAt: now.toISOString(),
           nextDueAt: nextDue.toISOString(),
           status: 'active',
@@ -121,7 +211,7 @@ function SipEnrollmentForm({ go, state, setState }) {
               marginTop: 8,
               fontFamily: `'Noto Serif', ${JS_T.serif}`, fontSize: 26, fontWeight: 700,
               lineHeight: 1.15, maxWidth: 260,
-            }}>Turn rupees into 22K gold, month after month.</div>
+            }}>Turn rupees into 24K gold, month after month.</div>
             <div style={{
               marginTop: 8,
               fontFamily: `'Manrope', ${JS_T.sans}`, fontSize: 12.5, color: 'rgba(251,238,226,0.82)',
@@ -138,8 +228,34 @@ function SipEnrollmentForm({ go, state, setState }) {
           <RateStrip label="Today's buy rate · 24K" rate={rate} delta={state.goldRate?.delta24h} live/>
         </div>
 
-        {/* Monthly amount */}
-        <Card title="Monthly instalment">
+        {/* Frequency */}
+        <Card title="Investment frequency">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+            {FREQUENCIES.map(f => {
+              const on = frequency === f.id;
+              return (
+                <button key={f.id} type="button" onClick={() => changeFrequency(f.id)} style={{
+                  padding: '12px 0', borderRadius: 10, cursor: 'pointer',
+                  background: on ? '#fff' : '#FBF7F3',
+                  border: `1.5px solid ${on ? JS_GOLD : JS_LINE}`,
+                  color: on ? JS_GOLD_DK : JS_INK,
+                  boxShadow: on ? '0 2px 8px rgba(115,92,0,0.14)' : 'none',
+                  fontFamily: `'Manrope', ${JS_T.sans}`,
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+                  transition: 'all 160ms ease',
+                }}>
+                  <span style={{ fontSize: 14, fontWeight: 800 }}>{f.label}</span>
+                  <span style={{ fontSize: 10, fontWeight: 500, opacity: 0.8 }}>
+                    {f.id === 'daily' ? 'every day' : f.id === 'weekly' ? 'every week' : 'every month'}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </Card>
+
+        {/* Instalment amount */}
+        <Card title={`${freq.label} instalment`}>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 8,
             background: '#FBF7F3',
@@ -154,7 +270,7 @@ function SipEnrollmentForm({ go, state, setState }) {
               value={monthly === 0 ? '' : String(monthly)}
               onChange={e => setMonthly(Number((e.target.value || '').replace(/[^0-9]/g, '')) || 0)}
               onBlur={() => setTouched(true)}
-              placeholder="5000"
+              placeholder={String(freq.defaultAmt)}
               style={{
                 flex: 1, border: 'none', outline: 'none', background: 'transparent',
                 fontFamily: `'Manrope', ${JS_T.sans}`, fontSize: 22, fontWeight: 800,
@@ -163,11 +279,11 @@ function SipEnrollmentForm({ go, state, setState }) {
             />
             <span style={{
               fontFamily: `'Manrope', ${JS_T.sans}`, fontSize: 12, fontWeight: 600, color: JS_INK_SOFT,
-            }}>/mo</span>
+            }}>/{freq.short}</span>
           </div>
           {error && <ErrorMsg>{error}</ErrorMsg>}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-            {AMOUNT_CHIPS.map(c => {
+            {freq.chips.map(c => {
               const on = monthly === c;
               return (
                 <button key={c} type="button"
@@ -221,10 +337,13 @@ function SipEnrollmentForm({ go, state, setState }) {
             fontFamily: `'Manrope', ${JS_T.sans}`, fontSize: 10.5, color: JS_GOLD_DK,
             letterSpacing: 1.4, textTransform: 'uppercase', fontWeight: 700, marginBottom: 12,
           }}>Contract summary</div>
+          <SummaryRow label={`${freq.label} instalments`}
+            detail={`${totalInstalments} payments over ${tenure} months`}
+            value={`₹${monthly.toLocaleString('en-IN')} / ${freq.short}`}/>
           <SummaryRow label="Total invested over tenure"
             value={`₹${contractValue.toLocaleString('en-IN')}`}/>
           <SummaryRow label="Estimated locked-in gold"
-            detail="at today's rate · actual grams accrue per month"
+            detail={`at today's rate · accrues every ${freq.short === 'mo' ? 'month' : freq.short}`}
             value={`${estLockedGm.toFixed(3)} g`}/>
           <SummaryRow label="Maturity date"
             value={maturityDate.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}
@@ -254,7 +373,7 @@ function SipEnrollmentForm({ go, state, setState }) {
             <div style={{
               marginTop: 2,
               fontFamily: `'Manrope', ${JS_T.sans}`, fontSize: 11, color: JS_INK_SOFT, lineHeight: 1.4,
-            }}>Never miss a month. Debits from your primary bank on the due date.</div>
+            }}>Never miss an instalment. Debits {freq.id === 'daily' ? 'daily' : freq.id === 'weekly' ? 'weekly' : 'monthly'} from your primary bank.</div>
           </div>
           <Switch on={autopay} onToggle={() => setAutopay(v => !v)}/>
         </div>
@@ -295,7 +414,7 @@ function SipEnrollmentForm({ go, state, setState }) {
           <div style={{
             fontFamily: `'Noto Serif', ${JS_T.serif}`, fontSize: 18, fontWeight: 700,
             color: JS_GOLD_DK, marginTop: 1,
-          }}>₹{monthly.toLocaleString('en-IN')} × {tenure} months</div>
+          }}>₹{monthly.toLocaleString('en-IN')} / {freq.short} × {totalInstalments}</div>
         </div>
         <button onClick={tryStartSip} style={{
           height: 48, padding: '0 22px', borderRadius: 12, border: 'none',
@@ -388,7 +507,7 @@ function SipDashboard({ sip, go, state, setState }) {
           <div style={{
             fontFamily: `'Manrope', ${JS_T.sans}`, fontSize: 10.5, letterSpacing: 2.4,
             color: '#E9BE6F', fontWeight: 700,
-          }}>◆ LOCKED-IN GOLD · 22KT</div>
+          }}>◆ LOCKED-IN GOLD · 24KT</div>
           <div style={{
             marginTop: 8,
             fontFamily: `'Noto Serif', ${JS_T.serif}`, fontSize: 34, fontWeight: 700,
@@ -510,9 +629,13 @@ function SipDashboard({ sip, go, state, setState }) {
             marginTop: 2,
             fontFamily: `'Manrope', ${JS_T.sans}`, fontSize: 10.5, color: JS_INK_SOFT,
           }}>
-            {sip.autopay
-              ? 'We auto-debit on the 15th of every month'
-              : 'You’ll need to pay each month manually'}
+            {(() => {
+              const f = FREQ_BY_ID[sip.frequency || 'monthly'];
+              const everyText = f.id === 'daily' ? 'every day' : f.id === 'weekly' ? 'every week' : 'on the 15th of every month';
+              return sip.autopay
+                ? `We auto-debit ${everyText}`
+                : `You’ll need to pay ${f.id === 'monthly' ? 'each month' : f.id === 'weekly' ? 'each week' : 'each day'} manually`;
+            })()}
           </div>
         </div>
         <Switch on={sip.autopay} onToggle={toggleAutopay}/>

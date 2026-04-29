@@ -160,9 +160,12 @@ function SideDrawer({ open, onClose, go, user, walletBalance }) {
           {policyItems.map(it => (
             <DrawerRow key={it.key} item={it} onClick={() => pick(it)} muted/>
           ))}
-        </div>
 
-        {/* ── Footer removed ─────────────────────────── */}
+          <DrawerRow
+            item={{ label: 'Logout', key: 'logout', icon: IconLogout }}
+            onClick={() => { onClose(); go('signin'); }}
+          />
+        </div>
       </div>
 
       <style>{`
@@ -284,6 +287,13 @@ const IconRefund = () => (
     <path d="M4 12a8 8 0 1 0 2.3-5.6"/>
     <polyline points="3.5 3.5 3.5 8 8 8"/>
     <path d="M12 8v4l2.5 1.5"/>
+  </SVGWrap>
+);
+const IconLogout = () => (
+  <SVGWrap>
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+    <polyline points="16 17 21 12 16 7"/>
+    <line x1="21" y1="12" x2="9" y2="12"/>
   </SVGWrap>
 );
 

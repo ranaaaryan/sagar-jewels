@@ -9,9 +9,12 @@ import './icons.jsx';
 import './shell.jsx';
 import './atoms.jsx';
 import './walletAtoms.jsx';
+import './loader.jsx';
 
 // Pages (each assigns window.XxxPage)
 import './pages/Login.jsx';
+import './pages/SignIn.jsx';
+import './pages/SignUp.jsx';
 import './pages/Listing.jsx';
 import './pages/Filter.jsx';
 import './pages/Product.jsx';

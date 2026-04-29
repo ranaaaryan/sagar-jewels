@@ -162,6 +162,12 @@ function App() {
 
   const [page, setPage] = useState(() => localStorage.getItem('jewel_page_v1') || 'home');
   const [transition, setTransition] = useState(null);
+  const [booting, setBooting] = useState(true);
+
+  useEffect(() => {
+    const t = setTimeout(() => setBooting(false), 1100);
+    return () => clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('jewel_state_v3', JSON.stringify(state));
@@ -185,6 +191,8 @@ function App() {
   let content;
   switch (page) {
     case 'login':      content = <LoginPage     {...pageProps}/>; break;
+    case 'signin':     content = <SignInPage    {...pageProps}/>; break;
+    case 'signup':     content = <SignUpPage    {...pageProps}/>; break;
     case 'listing':    content = <ListingPage   {...pageProps}/>; break;
     case 'categories': content = <CategoriesPage {...pageProps}/>; break;
     case 'product':    content = <ProductPage   {...pageProps}/>; break;
@@ -240,7 +248,8 @@ function App() {
           }}>
             {content}
           </div>
-          {page !== 'login' && page !== 'product' && page !== 'checkout' && page !== 'loyalty-register' && (
+          {booting && <DiamondLoaderScreen/>}
+          {!['login', 'signin', 'signup', 'product', 'checkout', 'loyalty-register'].includes(page) && (
             <BottomNav current={navKey} go={go}/>
           )}
           {/* gesture pill */}

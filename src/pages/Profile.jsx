@@ -111,7 +111,7 @@ function DetailsPanel({ go, state, setState }) {
       )}
 
       <div style={{ textAlign: 'center', margin: '24px 0 10px' }}>
-        <button style={{
+        <button onClick={() => go('signin')} style={{
           background: 'none', border: 'none', cursor: 'pointer',
           fontFamily: TP.sans, fontSize: 12, fontWeight: 700, letterSpacing: 1.4,
           color: P_ACCENT,
