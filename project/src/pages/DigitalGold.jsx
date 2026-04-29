@@ -277,35 +277,52 @@ function DigitalGoldPage({ go, state, setState }) {
               marginTop: 10, background: '#fff', borderRadius: 14,
               border: `1px solid ${DG_LINE}`, overflow: 'hidden',
             }}>
-              {gold.lots.slice(0, 4).map((lot, i, arr) => (
-                <div key={lot.id} style={{
-                  display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
-                  borderBottom: i < arr.length - 1 ? `1px solid ${DG_LINE}` : 'none',
-                }}>
-                  <span style={{
-                    width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-                    background: DG_GOLD_TINT, color: DG_GOLD_DK,
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              {gold.lots.slice(0, 4).map((lot, i, arr) => {
+                const nowRate = rate?.buy || 0;
+                const diff = nowRate - lot.pricePerGm;
+                const up = diff >= 0;
+                const diffPct = lot.pricePerGm > 0 ? (diff / lot.pricePerGm) * 100 : 0;
+                return (
+                  <div key={lot.id} style={{
+                    display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
+                    borderBottom: i < arr.length - 1 ? `1px solid ${DG_LINE}` : 'none',
                   }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M5 9h14l-2 8H7z"/>
-                    </svg>
-                  </span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{
-                      fontFamily: `'Manrope', ${DG_T.sans}`, fontSize: 13, fontWeight: 700, color: DG_INK,
-                    }}>{lot.gm.toFixed(4)} g</div>
-                    <div style={{
-                      fontFamily: `'Manrope', ${DG_T.sans}`, fontSize: 11, color: DG_INK_SOFT, marginTop: 1,
+                    <span style={{
+                      width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                      background: DG_GOLD_TINT, color: DG_GOLD_DK,
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                     }}>
-                      {formatDate(lot.date)} · @ ₹{lot.pricePerGm.toLocaleString('en-IN')}/gm
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M5 9h14l-2 8H7z"/>
+                      </svg>
+                    </span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        fontFamily: `'Manrope', ${DG_T.sans}`, fontSize: 13, fontWeight: 700, color: DG_INK,
+                      }}>{lot.gm.toFixed(4)} g</div>
+                      <div style={{
+                        fontFamily: `'Manrope', ${DG_T.sans}`, fontSize: 11, color: DG_INK_SOFT, marginTop: 1,
+                      }}>{formatDate(lot.date)}</div>
+                      <div style={{
+                        marginTop: 4, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
+                        fontFamily: `'Manrope', ${DG_T.sans}`, fontSize: 11, color: DG_INK_SOFT,
+                      }}>
+                        <span>Bought <strong style={{ color: DG_INK }}>₹{lot.pricePerGm.toLocaleString('en-IN')}</strong>/g</span>
+                        <span style={{ opacity: 0.5 }}>·</span>
+                        <span>Now <strong style={{ color: DG_INK }}>₹{nowRate.toLocaleString('en-IN')}</strong>/g</span>
+                        {nowRate > 0 && (
+                          <span style={{
+                            color: up ? '#4C6944' : '#D65A50', fontWeight: 700,
+                          }}>{up ? '▲' : '▼'} {Math.abs(diffPct).toFixed(1)}%</span>
+                        )}
+                      </div>
                     </div>
+                    <div style={{
+                      fontFamily: `'Manrope', ${DG_T.sans}`, fontSize: 13, fontWeight: 800, color: DG_GOLD_DK,
+                    }}>₹{lot.paid.toLocaleString('en-IN')}</div>
                   </div>
-                  <div style={{
-                    fontFamily: `'Manrope', ${DG_T.sans}`, fontSize: 13, fontWeight: 800, color: DG_GOLD_DK,
-                  }}>₹{lot.paid.toLocaleString('en-IN')}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

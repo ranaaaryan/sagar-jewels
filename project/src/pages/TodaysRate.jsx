@@ -33,13 +33,13 @@ function getRates(state) {
       deltaPct: (delta24h / buyRate24) * 100,
     },
     gold: [
-      { k: '24KT Pure',    fineness: '999',   rate: buyRate24, tone: 'gold' },
-      { k: '18KT',         fineness: '750',   rate: rate18,    tone: 'gold-soft' },
-      { k: '14KT',         fineness: '585',   rate: rate14,    tone: 'gold-pale' },
+      { k: '24KT Pure', fineness: '999', rate: buyRate24, tone: 'gold',      delta: delta24h },
+      { k: '18KT',      fineness: '750', rate: rate18,    tone: 'gold-soft', delta: Math.round(delta24h * 18 / 24) },
+      { k: '14KT',      fineness: '585', rate: rate14,    tone: 'gold-pale', delta: Math.round(delta24h * 14 / 24) },
     ],
     silver: [
-      { k: 'Fine Silver',  fineness: '999',   rate: silver999, tone: 'silver' },
-      { k: 'Sterling',     fineness: '925',   rate: silver925, tone: 'silver-pale' },
+      { k: 'Fine Silver', fineness: '999', rate: silver999, tone: 'silver',      delta: -1 },
+      { k: 'Sterling',    fineness: '925', rate: silver925, tone: 'silver-pale', delta: -1 },
     ],
   };
 }
@@ -256,16 +256,17 @@ function HeroRateCard({ hero }) {
           marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(243,221,203,0.24)',
           display: 'flex', justifyContent: 'space-between', gap: 10,
         }}>
-          <MiniStat label="1 gram"  value={`₹${hero.rate.toLocaleString('en-IN')}`}/>
-          <MiniStat label="8 grams" value={`₹${(hero.rate * 8).toLocaleString('en-IN')}`}/>
-          <MiniStat label="10 grams" value={`₹${(hero.rate * 10).toLocaleString('en-IN')}`} last/>
+          <MiniStat label="1 gram"   value={`₹${hero.rate.toLocaleString('en-IN')}`}        rising={rising} flat={hero.delta === 0}/>
+          <MiniStat label="8 grams"  value={`₹${(hero.rate * 8).toLocaleString('en-IN')}`}  rising={rising} flat={hero.delta === 0}/>
+          <MiniStat label="10 grams" value={`₹${(hero.rate * 10).toLocaleString('en-IN')}`} rising={rising} flat={hero.delta === 0}/>
         </div>
       </div>
     </div>
   );
 }
 
-function MiniStat({ label, value }) {
+function MiniStat({ label, value, rising, flat }) {
+  const arrowColor = flat ? '#F3DDCB' : (rising ? '#D3F0C6' : '#F6C7C2');
   return (
     <div>
       <div style={{
@@ -274,9 +275,17 @@ function MiniStat({ label, value }) {
       }}>{label}</div>
       <div style={{
         marginTop: 3,
+        display: 'inline-flex', alignItems: 'center', gap: 4,
         fontFamily: `'Noto Serif', ${TR?.serif || 'serif'}`, fontSize: 13, fontWeight: 700,
         color: '#F3DDCB',
-      }}>{value}</div>
+      }}>
+        {!flat && (
+          <svg width="8" height="8" viewBox="0 0 10 10" fill={arrowColor} aria-hidden="true">
+            {rising ? <path d="M5 1l4 6H1z"/> : <path d="M5 9L1 3h8z"/>}
+          </svg>
+        )}
+        <span>{value}</span>
+      </div>
     </div>
   );
 }
@@ -299,8 +308,13 @@ function CategoryHeader({ kicker, title }) {
 }
 
 // ── Single rate row ──────────────────────────────────────────────
-function RateRow({ k, fineness, rate, tone, last }) {
+function RateRow({ k, fineness, rate, tone, delta = 0, last }) {
   const isSilver = tone.startsWith('silver');
+  const flat = !delta;
+  const up = delta > 0;
+  const baseColor = isSilver ? TR_SILVER_DK : TR_GOLD_DK;
+  const trendColor = flat ? baseColor : (up ? TR_UP : TR_DOWN);
+  const deltaPct = rate > 0 ? (Math.abs(delta) / rate) * 100 : 0;
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 14,
@@ -329,14 +343,24 @@ function RateRow({ k, fineness, rate, tone, last }) {
       {/* Rate */}
       <div style={{ textAlign: 'right', flexShrink: 0 }}>
         <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 5,
           fontFamily: `'Noto Serif', ${TR?.serif || 'serif'}`, fontSize: 17, fontWeight: 700,
-          color: isSilver ? TR_SILVER_DK : TR_GOLD_DK,
-        }}>₹{rate.toLocaleString('en-IN')}</div>
+          color: trendColor,
+        }}>
+          {!flat && (
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true">
+              {up ? <path d="M5 1l4 6H1z"/> : <path d="M5 9L1 3h8z"/>}
+            </svg>
+          )}
+          <span>₹{rate.toLocaleString('en-IN')}</span>
+        </div>
         <div style={{
           marginTop: 1,
           fontFamily: `'Manrope', ${TR?.sans || 'sans-serif'}`, fontSize: 10, fontWeight: 600,
-          color: TR_INK_SOFT, letterSpacing: 0.4,
-        }}>per gram</div>
+          color: flat ? TR_INK_SOFT : trendColor, letterSpacing: 0.4,
+        }}>{flat
+          ? 'per gram'
+          : `${up ? '+' : '−'}₹${Math.abs(delta)} · ${deltaPct.toFixed(2)}%`}</div>
       </div>
     </div>
   );
